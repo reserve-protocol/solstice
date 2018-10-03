@@ -42,11 +42,12 @@ func main() {
 
 	pcToOpIndex := trace.GetPcToOpIndex(execTrace)
 
-	opSourceLocations, sourceFileList, err := source_map.GetSourceMap(sourceFilePath, contractsPath)
+	opSourceLocations, sourceFileList, err := source_map.GetSourceMap(sourceFilePath, contractsPath, contractName)
 	if err != nil {
 		panic(err)
 	}
 
+	// Initialize the coverage report
 	coverage := make(map[string][]int)
 	for _, sourceFile := range sourceFileList {
 		sourceFileName := filepath.Join(contractsPath, sourceFile)
@@ -57,6 +58,7 @@ func main() {
 		coverage[sourceFileName] = make([]int, lineLength)
 	}
 
+	// Fill the coverage report
 	for _, traceOp := range execTrace.Ops {
 		lastLocation := opSourceLocations[pcToOpIndex[traceOp.Pc]]
 		if lastLocation.ByteLength == -1 || lastLocation.ByteOffset == -1 || lastLocation.SourceFileIndex == -1 {
@@ -90,6 +92,7 @@ func main() {
 		coverage[sourceFileName][lineNumber] += 1
 	}
 
+	// Print the coverage report
 	for filename, lines := range coverage {
 		fmt.Println(filename)
 		for linenumber, count := range lines {

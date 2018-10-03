@@ -24,7 +24,7 @@ type opSourceLocation struct {
 	JumpType        rune
 }
 
-func GetSourceMap(sourceFilePath string, contractsPath string) ([]opSourceLocation, []string, error) {
+func GetSourceMap(sourceFilePath string, contractsPath string, contractName string) ([]opSourceLocation, []string, error) {
 	var opSourceLocations []opSourceLocation
 	var srcMapJson solcCombinedJson
 
@@ -45,7 +45,7 @@ func GetSourceMap(sourceFilePath string, contractsPath string) ([]opSourceLocati
 	if err != nil {
 		return opSourceLocations, srcMapJson.SourceList, err
 	}
-	srcMapString := srcMapJson.Contracts[sourceFilePath+":Auctioneer"].SrcmapRuntime
+	srcMapString := srcMapJson.Contracts[sourceFilePath+":"+contractName].SrcmapRuntime
 	srcMapSlice := strings.Split(srcMapString, ";")
 
 	for i, instructionTuple := range srcMapSlice {

@@ -48,7 +48,7 @@ func main() {
 
 	// Now you have pcToOpIndex[lastProgramCounter] with which to pick an operation from the source map
 
-	opSourceLocations, sourceFileList, err := source_map.GetSourceMap(sourceFilePath, contractsPath)
+	opSourceLocations, sourceFileList, err := source_map.GetSourceMap(sourceFilePath, contractsPath, contractName)
 	if err != nil {
 		panic(err)
 	}
