@@ -1,6 +1,6 @@
 package source_map
 
-import(
+import (
 	"encoding/json"
 	"os/exec"
 	"strconv"
@@ -18,10 +18,10 @@ type srcmapRuntime struct {
 }
 
 type opSourceLocation struct {
-	ByteOffset int
-	ByteLength int
+	ByteOffset      int
+	ByteLength      int
 	SourceFileIndex int
-	JumpType rune
+	JumpType        rune
 }
 
 func GetSourceMap(sourceFilePath string, contractsPath string) ([]opSourceLocation, []string, error) {
@@ -53,7 +53,7 @@ func GetSourceMap(sourceFilePath string, contractsPath string) ([]opSourceLocati
 		if i == 0 {
 			currentStruct = opSourceLocation{}
 		} else {
-			currentStruct = opSourceLocations[len(opSourceLocations) - 1]
+			currentStruct = opSourceLocations[len(opSourceLocations)-1]
 		}
 		for j, val := range strings.Split(instructionTuple, ":") {
 			// We do this because the split tuple might have any length <= 4.

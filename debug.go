@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-    "github.com/coordination-institute/debugging-tools/parity"
+	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/source_map"
 	"github.com/coordination-institute/debugging-tools/trace"
 )
