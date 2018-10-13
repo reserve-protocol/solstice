@@ -1,6 +1,8 @@
 package trace
 
 import (
+	"strings"
+
 	"github.com/coordination-institute/debugging-tools/parity"
 )
 
@@ -15,7 +17,7 @@ func GetPcToOpIndex(execTrace parity.VmTrace) map[int]int {
 
 	opIndex := 0
 
-	for index, char := range execTrace.Code[2:] { // Remove "0x" from the front
+	for index, char := range strings.TrimPrefix(execTrace.Code, "0x") {
 		if index%2 == 0 {
 			firstByteRune = char
 			continue
@@ -33,11 +35,10 @@ func GetPcToOpIndex(execTrace parity.VmTrace) map[int]int {
 			continue
 		}
 
-		pcToOpIndex[byteIndex] = opIndex // Or something close to this
+		pcToOpIndex[byteIndex] = opIndex
 
 		if pushBytes := bytesPushed(currentByte); pushBytes != -1 {
 			pushBytesRemaining = pushBytes
-			// Maybe an off by one error here
 		}
 
 		opIndex += 1

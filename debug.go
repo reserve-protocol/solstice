@@ -5,11 +5,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go/build"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/source_map"
@@ -18,25 +16,23 @@ import (
 
 func main() {
 	var txnHash string
-	var sourceFilePath string
-	var contractName string
+	var contractsDir string
 	flag.StringVar(&txnHash, "txnHash", "0x0", "a transaction hash")
-	flag.StringVar(&sourceFilePath, "sourceFilePath", "", "contract file path")
-	flag.StringVar(&contractName, "contractName", "", "contract file name")
+	flag.StringVar(&contractsDir, "contractsDir", "", "directory containing all the contracts")
 	flag.Parse()
 
-	if contractName == "" {
-		// If they don't specify a contract name, assume it's the same as the filename.
-		contractName = strings.Split(filepath.Base(sourceFilePath), ".")[0]
+	contractsDir, err := filepath.Abs(contractsDir)
+	if err != nil {
+		panic(err)
 	}
-	contractsPath := filepath.Join(
-		build.Default.GOPATH,
-		"/src/github.com/coordination-institute/reserve/protocol/ethereum/contracts",
-	)
 
 	execTrace, err := parity.GetExecTrace(txnHash)
 	if err != nil {
 		panic(err)
+	}
+	if execTrace.Code == "0x" {
+		fmt.Println("Transaction was not sent to a contract.")
+		return
 	}
 
 	pcToOpIndex := trace.GetPcToOpIndex(execTrace)
@@ -48,15 +44,31 @@ func main() {
 
 	// Now you have pcToOpIndex[lastProgramCounter] with which to pick an operation from the source map
 
-	opSourceLocations, sourceFileList, err := source_map.GetSourceMap(sourceFilePath, contractsPath, contractName)
+	sourceMaps, bytecodeToFilename, err := source_map.GetSourceMaps(contractsDir)
 	if err != nil {
 		panic(err)
 	}
-	lastLocation := opSourceLocations[pcToOpIndex[lastProgramCounter]]
-	fmt.Printf("Last location: {%d %d %d %c}\n", lastLocation.ByteOffset, lastLocation.ByteLength, lastLocation.SourceFileIndex, lastLocation.JumpType)
 
-	sourceFileName := filepath.Join(contractsPath, sourceFileList[lastLocation.SourceFileIndex])
-	sourceFileReader, err := os.Open(sourceFileName)
+	filename := bytecodeToFilename[execTrace.Code[0:len(execTrace.Code)-86]]
+	srcmap := sourceMaps[filename]
+	if len(srcmap) == 0 {
+		fmt.Println("Contract code not in contracts dir.")
+		return
+	}
+
+	if _, ok := pcToOpIndex[lastProgramCounter]; !ok {
+		fmt.Println("Something has gone wrong")
+		return
+	}
+	lastLocation := srcmap[pcToOpIndex[lastProgramCounter]]
+
+	if lastLocation.SourceFileName == "" {
+		fmt.Printf("File name: %s\n has no source map.", filename)
+		return
+	}
+	fmt.Printf("Last location: {%d %d %s %c}\n", lastLocation.ByteOffset, lastLocation.ByteLength, lastLocation.SourceFileName, lastLocation.JumpType)
+
+	sourceFileReader, err := os.Open(lastLocation.SourceFileName)
 	if err != nil {
 		panic(err)
 	}
@@ -83,6 +95,6 @@ func main() {
 		}
 	}
 
-	fmt.Printf("%s %d:%d\n", sourceFileName, lineNumber, columnNumber)
+	fmt.Printf("%s %d:%d\n", lastLocation.SourceFileName, lineNumber, columnNumber)
 	fmt.Printf("... %s ...\n", codeSnippet)
 }

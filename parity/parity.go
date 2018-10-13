@@ -43,6 +43,7 @@ func GetExecTrace(txnHash string) (VmTrace, error) {
 		"{\"jsonrpc\":\"2.0\",\"method\":\"trace_replayTransaction\",\"params\":[\"%s\", [\"vmTrace\"]],\"id\":1}",
 		txnHash,
 	)
+	// TODO: Use something other than curl
 	cmd := exec.Command(
 		"curl",
 		"-X", "POST", "-H",
