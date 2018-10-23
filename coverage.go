@@ -38,12 +38,10 @@ func main() {
 		panic(err)
 	}
 
-
 	sourceMaps, bytecodeToFilename, err := source_map.GetSourceMaps(contractsDir)
 	if err != nil {
 		panic(err)
 	}
-
 
 	headerBeforeTests, err := client.HeaderByNumber(context.Background(), nil)
 	if err != nil {
@@ -73,9 +71,9 @@ func main() {
 		cmd.Stderr = &stderr
 		err := cmd.Run()
 		if err != nil {
-		    fmt.Println("Tests return " + fmt.Sprint(err) + ": " + stderr.String())
+			fmt.Println("Tests return " + fmt.Sprint(err) + ": " + stderr.String())
 			if fmt.Sprint(err) != "exit status 1" || stderr.String() != "" {
-		    	panic(stderr.String())
+				panic(stderr.String())
 			}
 		}
 	}
@@ -109,7 +107,7 @@ func main() {
 		}
 	}
 
-	sourceFileNameSet   := make(map[string]struct{})
+	sourceFileNameSet := make(map[string]struct{})
 	sourceFileNameSlice := []string{}
 
 	i := 0
@@ -117,11 +115,11 @@ func main() {
 		filename := strings.Split(contractName, ":")[0]
 
 		if _, ok := sourceFileNameSet[filename]; !ok {
-		  sourceFileNameSet[filename] = struct{}{}
-		  sourceFileNameSlice = append(sourceFileNameSlice, filename)
+			sourceFileNameSet[filename] = struct{}{}
+			sourceFileNameSlice = append(sourceFileNameSlice, filename)
 		}
 
-	    i++
+		i++
 	}
 
 	// Initialize the coverage report

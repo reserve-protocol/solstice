@@ -2,8 +2,8 @@ package source_map
 
 import (
 	"encoding/json"
-	"path/filepath"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -16,7 +16,7 @@ type solcCombinedJson struct {
 
 type runtimeArtifacts struct {
 	SrcmapRuntime string `json:"srcmap-runtime"`
-	BinRuntime string `json:"bin-runtime"`
+	BinRuntime    string `json:"bin-runtime"`
 }
 
 type opSourceLocation struct {
@@ -30,7 +30,7 @@ func GetSourceMaps(contractsPath string) (map[string][]opSourceLocation, map[str
 	var srcMapJson solcCombinedJson
 
 	// TODO: Make this list .sol files recursively
-	files, err := filepath.Glob(contractsPath+"/*.sol")
+	files, err := filepath.Glob(contractsPath + "/*.sol")
 	if err != nil {
 		return map[string][]opSourceLocation{}, map[string]string{}, err
 	}
@@ -46,7 +46,7 @@ func GetSourceMaps(contractsPath string) (map[string][]opSourceLocation, map[str
 
 	cmd := exec.Command("solc", solcArgs...)
 	cmd.Dir = contractsPath
-	out, err := cmd.Output() 
+	out, err := cmd.Output()
 	if err != nil {
 		return map[string][]opSourceLocation{}, map[string]string{}, err
 	}
@@ -59,7 +59,7 @@ func GetSourceMaps(contractsPath string) (map[string][]opSourceLocation, map[str
 	bytecodeToFilename := make(map[string]string)
 	for contractName, artifacts := range srcMapJson.Contracts {
 		if len(artifacts.BinRuntime) != 0 {
-			bytecode := "0x"+artifacts.BinRuntime
+			bytecode := "0x" + artifacts.BinRuntime
 			// TODO: Make "removeMetaData" function that asserts that the
 			// metadata is there, and then cuts it off.
 			bytecodeToFilename[bytecode[0:len(bytecode)-86]] = contractName
