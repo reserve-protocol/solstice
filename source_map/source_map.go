@@ -19,20 +19,20 @@ type runtimeArtifacts struct {
 	BinRuntime    string `json:"bin-runtime"`
 }
 
-type opSourceLocation struct {
+type OpSourceLocation struct {
 	ByteOffset     int
 	ByteLength     int
 	SourceFileName string
 	JumpType       rune
 }
 
-func GetSourceMaps(contractsPath string) (map[string][]opSourceLocation, map[string]string, error) {
+func GetSourceMaps(contractsPath string) (map[string][]OpSourceLocation, map[string]string, error) {
 	var srcMapJson solcCombinedJson
 
 	// TODO: Make this list .sol files recursively
 	files, err := filepath.Glob(contractsPath + "/*.sol")
 	if err != nil {
-		return map[string][]opSourceLocation{}, map[string]string{}, err
+		return map[string][]OpSourceLocation{}, map[string]string{}, err
 	}
 
 	solcArgs := append(
@@ -48,12 +48,12 @@ func GetSourceMaps(contractsPath string) (map[string][]opSourceLocation, map[str
 	cmd.Dir = contractsPath
 	out, err := cmd.Output()
 	if err != nil {
-		return map[string][]opSourceLocation{}, map[string]string{}, err
+		return map[string][]OpSourceLocation{}, map[string]string{}, err
 	}
 
 	err = json.Unmarshal(out, &srcMapJson)
 	if err != nil {
-		return map[string][]opSourceLocation{}, map[string]string{}, err
+		return map[string][]OpSourceLocation{}, map[string]string{}, err
 	}
 
 	bytecodeToFilename := make(map[string]string)
@@ -66,15 +66,15 @@ func GetSourceMaps(contractsPath string) (map[string][]opSourceLocation, map[str
 		}
 	}
 
-	sourceMaps := map[string][]opSourceLocation{}
+	sourceMaps := map[string][]OpSourceLocation{}
 	for contractName, artifacts := range srcMapJson.Contracts {
 		srcMapSlice := strings.Split(artifacts.SrcmapRuntime, ";")
 
-		var opSourceLocations []opSourceLocation
+		var opSourceLocations []OpSourceLocation
 		for i, instructionTuple := range srcMapSlice {
-			var currentStruct opSourceLocation
+			var currentStruct OpSourceLocation
 			if i == 0 {
-				currentStruct = opSourceLocation{}
+				currentStruct = OpSourceLocation{}
 			} else {
 				currentStruct = opSourceLocations[len(opSourceLocations)-1]
 			}

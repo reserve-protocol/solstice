@@ -7,9 +7,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"math/big"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -17,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 
+	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/source_map"
 	"github.com/coordination-institute/debugging-tools/trace"
@@ -28,25 +27,17 @@ func main() {
 	flag.Parse()
 
 	contractsDir, err := filepath.Abs(contractsDir)
-	if err != nil {
-		panic(err)
-	}
+	common.Check(err)
 
 	// TODO: Make this port etc configurable
 	client, err := ethclient.Dial("http://127.0.0.1:8545")
-	if err != nil {
-		panic(err)
-	}
+	common.Check(err)
 
 	sourceMaps, bytecodeToFilename, err := source_map.GetSourceMaps(contractsDir)
-	if err != nil {
-		panic(err)
-	}
+	common.Check(err)
 
 	headerBeforeTests, err := client.HeaderByNumber(context.Background(), nil)
-	if err != nil {
-		panic(err)
-	}
+	common.Check(err)
 	fmt.Printf("Start block number: %v\n", headerBeforeTests.Number)
 
 	// Run tests
@@ -69,8 +60,7 @@ func main() {
 		var stderr bytes.Buffer
 		cmd.Stdout = &out
 		cmd.Stderr = &stderr
-		err := cmd.Run()
-		if err != nil {
+		if cmd.Run() != nil {
 			fmt.Println("Tests return " + fmt.Sprint(err) + ": " + stderr.String())
 			if fmt.Sprint(err) != "exit status 1" || stderr.String() != "" {
 				panic(stderr.String())
@@ -79,9 +69,7 @@ func main() {
 	}
 
 	blockAfterTests, err := client.BlockByNumber(context.Background(), nil)
-	if err != nil {
-		panic(err)
-	}
+	common.Check(err)
 	fmt.Printf("Ending block number: %v\n", blockAfterTests.Number())
 
 	// Build list of all transactions
@@ -91,15 +79,11 @@ func main() {
 		var oneMore big.Int
 		oneMore.Add(blockNumber, big.NewInt(1))
 		block, err := client.BlockByNumber(context.Background(), &oneMore)
-		if err != nil {
-			panic(err)
-		}
+		common.Check(err)
 		for _, txn := range block.Transactions() {
 			if txn.To() != nil {
 				bytecode, err := client.CodeAt(context.TODO(), *txn.To(), block.Number())
-				if err != nil {
-					panic(err)
-				}
+				common.Check(err)
 				if len(bytecode) != 0 {
 					txns = append(txns, txn)
 				}
@@ -125,20 +109,16 @@ func main() {
 	// Initialize the coverage report
 	coverage := make(map[string][]int)
 	for _, sourceFileName := range sourceFileNameSlice {
-		lineLength, err := lineCounter(sourceFileName)
-		if err != nil {
-			panic(err)
-		}
+		lineLength, err := common.NumberOfLines(sourceFileName)
+		common.Check(err)
 		coverage[sourceFileName] = make([]int, lineLength)
 	}
 
 	// Fill the coverage report
 	for _, txn := range txns {
 		execTrace, err := parity.GetExecTrace(fmt.Sprintf("0x%x", txn.Hash()))
-		if err != nil {
-			panic(err)
-		}
-		pcToOpIndex := trace.GetPcToOpIndex(execTrace)
+		common.Check(err)
+		pcToOpIndex := trace.GetPcToOpIndex(execTrace.Code)
 		for _, traceOp := range execTrace.Ops {
 			contractName := bytecodeToFilename[execTrace.Code[0:len(execTrace.Code)-86]]
 			if contractName == "" {
@@ -149,30 +129,10 @@ func main() {
 				continue
 			}
 
-			sourceFileReader, err := os.Open(lastLocation.SourceFileName)
-			if err != nil {
-				panic(err)
-			}
-			sourceFileBeginning := make([]byte, lastLocation.ByteOffset+lastLocation.ByteLength)
+			lineNumber, _, _, err := common.ByteLocToSnippet(lastLocation)
+			common.Check(err)
 
-			_, err = io.ReadFull(sourceFileReader, sourceFileBeginning)
-			if err != nil {
-				panic(err)
-			}
-
-			lineNumber := 1
-			columnNumber := 1
-			for byteIndex, sourceByte := range sourceFileBeginning {
-				if byteIndex < lastLocation.ByteOffset {
-					columnNumber += 1
-					if sourceByte == '\n' {
-						lineNumber += 1
-						columnNumber = 1
-					}
-				}
-			}
 			coverage[lastLocation.SourceFileName][lineNumber] += 1
-			sourceFileReader.Close()
 		}
 	}
 
@@ -183,30 +143,6 @@ func main() {
 			if count != 0 {
 				fmt.Printf("Line %d has %d hits\n", linenumber, count)
 			}
-		}
-	}
-}
-
-func lineCounter(filename string) (int, error) {
-	reader, err := os.Open(filename)
-	if err != nil {
-		return 0, err
-	}
-	defer reader.Close()
-	buf := make([]byte, 32*1024)
-	count := 0
-	lineSep := []byte{'\n'}
-
-	for {
-		c, err := reader.Read(buf)
-		count += bytes.Count(buf[:c], lineSep)
-
-		switch {
-		case err == io.EOF:
-			return count, nil
-
-		case err != nil:
-			return count, err
 		}
 	}
 }

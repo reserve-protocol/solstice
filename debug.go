@@ -5,10 +5,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
-	"os"
 	"path/filepath"
 
+	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/source_map"
 	"github.com/coordination-institute/debugging-tools/trace"
@@ -22,32 +21,25 @@ func main() {
 	flag.Parse()
 
 	contractsDir, err := filepath.Abs(contractsDir)
-	if err != nil {
-		panic(err)
-	}
+	common.Check(err)
 
 	execTrace, err := parity.GetExecTrace(txnHash)
-	if err != nil {
-		panic(err)
-	}
+	common.Check(err)
 	if execTrace.Code == "0x" {
 		fmt.Println("Transaction was not sent to a contract.")
 		return
 	}
 
-	pcToOpIndex := trace.GetPcToOpIndex(execTrace)
+	pcToOpIndex := trace.GetPcToOpIndex(execTrace.Code)
 
-	trace := execTrace.Ops
-	lastProgramCounter := trace[len(trace)-1].Pc
+	lastProgramCounter := execTrace.Ops[len(execTrace.Ops)-1].Pc
 	fmt.Printf("Last program counter: %v\n", lastProgramCounter)
 	fmt.Printf("Final op index: %v\n", pcToOpIndex[lastProgramCounter])
 
 	// Now you have pcToOpIndex[lastProgramCounter] with which to pick an operation from the source map
 
 	sourceMaps, bytecodeToFilename, err := source_map.GetSourceMaps(contractsDir)
-	if err != nil {
-		panic(err)
-	}
+	common.Check(err)
 
 	filename := bytecodeToFilename[execTrace.Code[0:len(execTrace.Code)-86]]
 	srcmap := sourceMaps[filename]
@@ -68,32 +60,8 @@ func main() {
 	}
 	fmt.Printf("Last location: {%d %d %s %c}\n", lastLocation.ByteOffset, lastLocation.ByteLength, lastLocation.SourceFileName, lastLocation.JumpType)
 
-	sourceFileReader, err := os.Open(lastLocation.SourceFileName)
-	if err != nil {
-		panic(err)
-	}
-	defer sourceFileReader.Close()
-	sourceFileBeginning := make([]byte, lastLocation.ByteOffset+lastLocation.ByteLength)
-
-	_, err = io.ReadFull(sourceFileReader, sourceFileBeginning)
-	if err != nil {
-		panic(err)
-	}
-
-	lineNumber := 1
-	columnNumber := 1
-	var codeSnippet []byte
-	for byteIndex, sourceByte := range sourceFileBeginning {
-		if byteIndex < lastLocation.ByteOffset {
-			columnNumber += 1
-			if sourceByte == '\n' {
-				lineNumber += 1
-				columnNumber = 1
-			}
-		} else {
-			codeSnippet = append(codeSnippet, sourceByte)
-		}
-	}
+	lineNumber, columnNumber, codeSnippet, err := common.ByteLocToSnippet(lastLocation)
+	common.Check(err)
 
 	fmt.Printf("%s %d:%d\n", lastLocation.SourceFileName, lineNumber, columnNumber)
 	fmt.Printf("... %s ...\n", codeSnippet)
