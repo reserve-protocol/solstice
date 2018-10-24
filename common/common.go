@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/coordination-institute/debugging-tools/source_map"
+	"github.com/coordination-institute/debugging-tools/srcmap"
 )
 
 func Check(err error) {
@@ -23,7 +23,7 @@ func NumberOfLines(filename string) (int, error) {
 	return bytes.Count(b, []byte{'\n'}), nil
 }
 
-func ByteLocToSnippet(location source_map.OpSourceLocation) (int, int, []byte, error) {
+func ByteLocToSnippet(location srcmap.OpSourceLocation) (int, int, []byte, error) {
 	sourceFileReader, err := os.Open(location.SourceFileName)
 	if err != nil {
 		return 0, 0, []byte{}, err

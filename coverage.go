@@ -17,7 +17,7 @@ import (
 
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
-	"github.com/coordination-institute/debugging-tools/source_map"
+	"github.com/coordination-institute/debugging-tools/srcmap"
 	"github.com/coordination-institute/debugging-tools/trace"
 )
 
@@ -33,7 +33,7 @@ func main() {
 	client, err := ethclient.Dial("http://127.0.0.1:8545")
 	common.Check(err)
 
-	sourceMaps, bytecodeToFilename, err := source_map.GetSourceMaps(contractsDir)
+	sourceMaps, bytecodeToFilename, err := srcmap.Get(contractsDir)
 	common.Check(err)
 
 	headerBeforeTests, err := client.HeaderByNumber(context.Background(), nil)

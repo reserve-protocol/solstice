@@ -9,7 +9,7 @@ import (
 
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
-	"github.com/coordination-institute/debugging-tools/source_map"
+	"github.com/coordination-institute/debugging-tools/srcmap"
 	"github.com/coordination-institute/debugging-tools/trace"
 )
 
@@ -38,7 +38,7 @@ func main() {
 
 	// Now you have pcToOpIndex[lastProgramCounter] with which to pick an operation from the source map
 
-	sourceMaps, bytecodeToFilename, err := source_map.GetSourceMaps(contractsDir)
+	sourceMaps, bytecodeToFilename, err := srcmap.Get(contractsDir)
 	common.Check(err)
 
 	filename := bytecodeToFilename[execTrace.Code[0:len(execTrace.Code)-86]]

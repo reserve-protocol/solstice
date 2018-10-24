@@ -3,7 +3,8 @@ package parity
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
+	"net/http"
+	"strings"
 )
 
 type jsonrpcResponse struct {
@@ -39,30 +40,30 @@ type execTraceOpEx struct {
 }
 
 func GetExecTrace(txnHash string) (VmTrace, error) {
-	dataString := fmt.Sprintf(
-		"{\"jsonrpc\":\"2.0\",\"method\":\"trace_replayTransaction\",\"params\":[\"%s\", [\"vmTrace\"]],\"id\":1}",
-		txnHash,
-	)
-	// TODO: Use something other than curl
-	cmd := exec.Command(
-		"curl",
-		"-X", "POST", "-H",
-		"Content-Type: application/json",
-		"--data", dataString,
+	resp, err := http.Post(
 		"http://127.0.0.1:8545",
+		"application/json",
+		strings.NewReader(
+			fmt.Sprintf(
+				`{
+					"jsonrpc": "2.0",
+					"method": "trace_replayTransaction",
+					"params": [
+						%q,
+						["vmTrace"]
+					],
+					"id": 1
+				}`,
+				txnHash,
+			),
+		),
 	)
-
+	if err != nil {
+		return VmTrace{}, err
+	}
+	defer resp.Body.Close()
 	var execTraceResponse jsonrpcResponse
-
-	out, err := cmd.Output()
-	if err != nil {
-		return execTraceResponse.Result.VmTrace, err
-	}
-
-	err = json.Unmarshal(out, &execTraceResponse)
-	if err != nil {
-		return execTraceResponse.Result.VmTrace, err
-	}
+	err = json.NewDecoder(resp.Body).Decode(&execTraceResponse)
 
 	return execTraceResponse.Result.VmTrace, err
 }

@@ -1,4 +1,4 @@
-package source_map
+package srcmap
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-type solcCombinedJson struct {
+type solcCombinedJSON struct {
 	Contracts  map[string]runtimeArtifacts
 	SourceList []string
 	Version    string
@@ -26,8 +26,8 @@ type OpSourceLocation struct {
 	JumpType       rune
 }
 
-func GetSourceMaps(contractsPath string) (map[string][]OpSourceLocation, map[string]string, error) {
-	var srcMapJson solcCombinedJson
+func Get(contractsPath string) (map[string][]OpSourceLocation, map[string]string, error) {
+	var srcMapJSON solcCombinedJSON
 
 	// TODO: Make this list .sol files recursively
 	files, err := filepath.Glob(contractsPath + "/*.sol")
@@ -51,13 +51,13 @@ func GetSourceMaps(contractsPath string) (map[string][]OpSourceLocation, map[str
 		return map[string][]OpSourceLocation{}, map[string]string{}, err
 	}
 
-	err = json.Unmarshal(out, &srcMapJson)
+	err = json.Unmarshal(out, &srcMapJSON)
 	if err != nil {
 		return map[string][]OpSourceLocation{}, map[string]string{}, err
 	}
 
 	bytecodeToFilename := make(map[string]string)
-	for contractName, artifacts := range srcMapJson.Contracts {
+	for contractName, artifacts := range srcMapJSON.Contracts {
 		if len(artifacts.BinRuntime) != 0 {
 			bytecode := "0x" + artifacts.BinRuntime
 			// TODO: Make "removeMetaData" function that asserts that the
@@ -67,7 +67,7 @@ func GetSourceMaps(contractsPath string) (map[string][]OpSourceLocation, map[str
 	}
 
 	sourceMaps := map[string][]OpSourceLocation{}
-	for contractName, artifacts := range srcMapJson.Contracts {
+	for contractName, artifacts := range srcMapJSON.Contracts {
 		srcMapSlice := strings.Split(artifacts.SrcmapRuntime, ";")
 
 		var opSourceLocations []OpSourceLocation
@@ -93,7 +93,7 @@ func GetSourceMaps(contractsPath string) (map[string][]OpSourceLocation, map[str
 							return sourceMaps, bytecodeToFilename, err
 						}
 						if sourceFileIndex != -1 {
-							currentStruct.SourceFileName = srcMapJson.SourceList[sourceFileIndex]
+							currentStruct.SourceFileName = srcMapJSON.SourceList[sourceFileIndex]
 						} else {
 							currentStruct.SourceFileName = ""
 						}
