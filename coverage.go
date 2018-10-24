@@ -120,7 +120,7 @@ func main() {
 		common.Check(err)
 		pcToOpIndex := trace.GetPcToOpIndex(execTrace.Code)
 		for _, traceOp := range execTrace.Ops {
-			contractName := bytecodeToFilename[execTrace.Code[0:len(execTrace.Code)-86]]
+			contractName := bytecodeToFilename[common.RemoveMetaData(execTrace.Code)]
 			if contractName == "" {
 				continue
 			}

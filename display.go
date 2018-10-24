@@ -45,7 +45,7 @@ func main() {
 	sourceMaps, bytecodeToFilename, err := srcmap.Get(contractsDir)
 	common.Check(err)
 
-	filename := bytecodeToFilename[execTrace.Code[0:len(execTrace.Code)-86]]
+	filename := bytecodeToFilename[common.RemoveMetaData(execTrace.Code)]
 	srcmap := sourceMaps[filename]
 	if len(srcmap) == 0 {
 		fmt.Println("Contract code not in contracts dir.")

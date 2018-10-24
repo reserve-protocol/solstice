@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/coordination-institute/debugging-tools/common"
 )
 
 type solcCombinedJSON struct {
@@ -19,20 +21,13 @@ type runtimeArtifacts struct {
 	BinRuntime    string `json:"bin-runtime"`
 }
 
-type OpSourceLocation struct {
-	ByteOffset     int
-	ByteLength     int
-	SourceFileName string
-	JumpType       rune
-}
-
-func Get(contractsPath string) (map[string][]OpSourceLocation, map[string]string, error) {
+func Get(contractsPath string) (map[string][]common.OpSourceLocation, map[string]string, error) {
 	var srcMapJSON solcCombinedJSON
 
 	// TODO: Make this list .sol files recursively
 	files, err := filepath.Glob(contractsPath + "/*.sol")
 	if err != nil {
-		return map[string][]OpSourceLocation{}, map[string]string{}, err
+		return map[string][]common.OpSourceLocation{}, map[string]string{}, err
 	}
 
 	solcArgs := append(
@@ -48,12 +43,12 @@ func Get(contractsPath string) (map[string][]OpSourceLocation, map[string]string
 	cmd.Dir = contractsPath
 	out, err := cmd.Output()
 	if err != nil {
-		return map[string][]OpSourceLocation{}, map[string]string{}, err
+		return map[string][]common.OpSourceLocation{}, map[string]string{}, err
 	}
 
 	err = json.Unmarshal(out, &srcMapJSON)
 	if err != nil {
-		return map[string][]OpSourceLocation{}, map[string]string{}, err
+		return map[string][]common.OpSourceLocation{}, map[string]string{}, err
 	}
 
 	bytecodeToFilename := make(map[string]string)
@@ -62,19 +57,19 @@ func Get(contractsPath string) (map[string][]OpSourceLocation, map[string]string
 			bytecode := "0x" + artifacts.BinRuntime
 			// TODO: Make "removeMetaData" function that asserts that the
 			// metadata is there, and then cuts it off.
-			bytecodeToFilename[bytecode[0:len(bytecode)-86]] = contractName
+			bytecodeToFilename[common.RemoveMetaData(bytecode)] = contractName
 		}
 	}
 
-	sourceMaps := map[string][]OpSourceLocation{}
+	sourceMaps := map[string][]common.OpSourceLocation{}
 	for contractName, artifacts := range srcMapJSON.Contracts {
 		srcMapSlice := strings.Split(artifacts.SrcmapRuntime, ";")
 
-		var opSourceLocations []OpSourceLocation
+		var opSourceLocations []common.OpSourceLocation
 		for i, instructionTuple := range srcMapSlice {
-			var currentStruct OpSourceLocation
+			var currentStruct common.OpSourceLocation
 			if i == 0 {
-				currentStruct = OpSourceLocation{}
+				currentStruct = common.OpSourceLocation{}
 			} else {
 				currentStruct = opSourceLocations[len(opSourceLocations)-1]
 			}
