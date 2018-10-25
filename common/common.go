@@ -65,23 +65,22 @@ func RemoveMetaData(bytecode string) string {
 		panic(errors.New("Bytecode must start with 0x."))
 	}
 
-	if bytecode == "0x" {
+	if bytecode == "0x" || len(bytecode) < 18+64+4 {
 		return bytecode
 	}
 
-	if len(bytecode) < 86 {
-		panic(errors.New("Bytecode does not have metadata. Maybe it's an old version, or maybe it's been removed already."))
+	metadataIndex := strings.Index(bytecode, "a165627a7a72305820")
+
+	if metadataIndex == -1 {
+		return bytecode
 	}
 
-	metadata := bytecode[len(bytecode)-86 : len(bytecode)]
-
-	if !strings.HasPrefix(metadata, "a165627a7a72305820") {
-		panic(errors.New("Metadata prefix malformed or absent."))
+	if bytecode[metadataIndex+18+64:metadataIndex+18+64+4] != "0029" {
+		panic(errors.New("Metadata malformed."))
 	}
 
-	if !strings.HasSuffix(metadata, "0029") {
-		panic(errors.New("Metadata postfix malformed or absent."))
-	}
-
-	return bytecode[0 : len(bytecode)-86]
+	// If everything looks fine, replace metadata hash with 0's
+	return bytecode[0:metadataIndex+18] +
+		strings.Repeat("0", 64) +
+		bytecode[metadataIndex+18+64:len(bytecode)]
 }

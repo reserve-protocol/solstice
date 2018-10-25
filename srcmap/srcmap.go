@@ -2,6 +2,7 @@ package srcmap
 
 import (
 	"encoding/json"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -24,8 +25,17 @@ type runtimeArtifacts struct {
 func Get(contractsPath string) (map[string][]common.OpSourceLocation, map[string]string, error) {
 	var srcMapJSON solcCombinedJSON
 
-	// TODO: Make this list .sol files recursively
-	files, err := filepath.Glob(contractsPath + "/*.sol")
+	var files []string
+	err := filepath.Walk(contractsPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(info.Name(), ".sol") {
+			files = append(files, path)
+		}
+		return nil
+	})
+
 	if err != nil {
 		return map[string][]common.OpSourceLocation{}, map[string]string{}, err
 	}
@@ -55,8 +65,6 @@ func Get(contractsPath string) (map[string][]common.OpSourceLocation, map[string
 	for contractName, artifacts := range srcMapJSON.Contracts {
 		if len(artifacts.BinRuntime) != 0 {
 			bytecode := "0x" + artifacts.BinRuntime
-			// TODO: Make "removeMetaData" function that asserts that the
-			// metadata is there, and then cuts it off.
 			bytecodeToFilename[common.RemoveMetaData(bytecode)] = contractName
 		}
 	}

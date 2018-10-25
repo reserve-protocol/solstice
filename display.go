@@ -30,10 +30,6 @@ func main() {
 
 	execTrace, err := parity.GetExecTrace(txnHash)
 	common.Check(err)
-	if execTrace.Code == "0x" {
-		fmt.Println("Transaction was not sent to a contract.")
-		return
-	}
 
 	pcToOpIndex := trace.GetPcToOpIndex(execTrace.Code)
 
@@ -78,9 +74,9 @@ func main() {
 
 	markedUpSource := []byte("<pre>" +
 		srcBeginning +
-		"<div style=\"background-color:" + githubGreen + ";\">" +
+		"<span style=\"background-color:" + githubGreen + ";\">" +
 		srcMiddle +
-		"</div>" +
+		"</span>" +
 		srcEnd +
 		"</pre>",
 	)

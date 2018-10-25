@@ -2,6 +2,7 @@ package parity
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -62,8 +63,24 @@ func GetExecTrace(txnHash string) (VmTrace, error) {
 		return VmTrace{}, err
 	}
 	defer resp.Body.Close()
+
 	var execTraceResponse jsonrpcResponse
 	err = json.NewDecoder(resp.Body).Decode(&execTraceResponse)
+	if err != nil {
+		return VmTrace{}, err
+	}
 
-	return execTraceResponse.Result.VmTrace, err
+	if execTraceResponse.Result.Output == "" {
+		return execTraceResponse.Result.VmTrace, errors.New("Transaction ID not found.")
+	}
+
+	if execTraceResponse.Result.VmTrace.Code == "0x" {
+		return execTraceResponse.Result.VmTrace, errors.New("Transaction has no associated bytecode.")
+	}
+
+	if len(execTraceResponse.Result.VmTrace.Ops) == 0 {
+		return execTraceResponse.Result.VmTrace, errors.New("Transaction has no execution trace steps.")
+	}
+
+	return execTraceResponse.Result.VmTrace, nil
 }
