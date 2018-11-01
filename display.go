@@ -1,10 +1,8 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
-	"html"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,8 +13,6 @@ import (
 	"github.com/coordination-institute/debugging-tools/srcmap"
 	"github.com/coordination-institute/debugging-tools/trace"
 )
-
-const githubGreen string = "#e6ffed"
 
 func main() {
 	var txnHash string
@@ -37,8 +33,8 @@ func main() {
 	common.Check(err)
 
 	filename := bytecodeToFilename[common.RemoveMetaData(execTrace.Code)]
-	srcmap := sourceMaps[filename]
-	if len(srcmap) == 0 {
+	sourceMap := sourceMaps[filename]
+	if len(sourceMap) == 0 {
 		fmt.Println("Contract code not in contracts dir.")
 		return
 	}
@@ -56,7 +52,7 @@ func main() {
 	pcToOpIndex := trace.GetPcToOpIndex(execTrace.Code)
 
 	if pcIndex == -1 {
-		var prevLoc common.OpSourceLocation
+		var prevLoc srcmap.OpSourceLocation
 		for i, _ := range execTrace.Ops {
 			pc := execTrace.Ops[i].Pc
 
@@ -65,7 +61,7 @@ func main() {
 				continue
 			}
 
-			nextLoc := srcmap[pcToOpIndex[pc]]
+			nextLoc := sourceMap[pcToOpIndex[pc]]
 
 			if nextLoc.SourceFileName == "" {
 				continue
@@ -79,7 +75,7 @@ func main() {
 				prevLoc = nextLoc
 			}
 
-			markedUpSource, err := displayStep(nextLoc)
+			markedUpSource, err := nextLoc.LocationMarkup()
 			if err != nil {
 				continue
 			}
@@ -98,7 +94,7 @@ func main() {
 			return
 		}
 
-		markedUpSource, err := displayStep(srcmap[pcToOpIndex[pc]])
+		markedUpSource, err := sourceMap[pcToOpIndex[pc]].LocationMarkup()
 		common.Check(err)
 
 		common.Check(ioutil.WriteFile(
@@ -107,30 +103,4 @@ func main() {
 			0644,
 		))
 	}
-}
-
-func displayStep(location common.OpSourceLocation) ([]byte, error) {
-	if location.SourceFileName == "" {
-		return []byte{}, errors.New("Step source file not found.")
-	}
-
-	fmt.Printf("Location: {%d %d %s %c}\n", location.ByteOffset, location.ByteLength, location.SourceFileName, location.JumpType)
-
-	wholeSrc, err := ioutil.ReadFile(location.SourceFileName)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	srcBeginning := html.EscapeString(string(wholeSrc[0:location.ByteOffset]))
-	srcMiddle := html.EscapeString(string(wholeSrc[location.ByteOffset : location.ByteOffset+location.ByteLength]))
-	srcEnd := html.EscapeString(string(wholeSrc[location.ByteOffset+location.ByteLength : len(wholeSrc)-1]))
-
-	return []byte("<pre>" +
-		srcBeginning +
-		"<span style=\"background-color:" + githubGreen + ";\">" +
-		srcMiddle +
-		"</span>" +
-		srcEnd +
-		"</pre>",
-	), nil
 }

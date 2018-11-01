@@ -42,8 +42,8 @@ func main() {
 	common.Check(err)
 
 	filename := bytecodeToFilename[common.RemoveMetaData(execTrace.Code)]
-	srcmap := sourceMaps[filename]
-	if len(srcmap) == 0 {
+	sourceMap := sourceMaps[filename]
+	if len(sourceMap) == 0 {
 		fmt.Println("Contract code not in contracts dir.")
 		return
 	}
@@ -52,7 +52,7 @@ func main() {
 		fmt.Println("Something has gone wrong")
 		return
 	}
-	lastLocation := srcmap[pcToOpIndex[lastProgramCounter]]
+	lastLocation := sourceMap[pcToOpIndex[lastProgramCounter]]
 
 	if lastLocation.SourceFileName == "" {
 		fmt.Printf("File name:\n%s\nhas no source map.", filename)
@@ -60,7 +60,7 @@ func main() {
 	}
 	fmt.Printf("Last location: {%d %d %s %c}\n", lastLocation.ByteOffset, lastLocation.ByteLength, lastLocation.SourceFileName, lastLocation.JumpType)
 
-	lineNumber, columnNumber, codeSnippet, err := common.ByteLocToSnippet(lastLocation)
+	lineNumber, columnNumber, codeSnippet, err := lastLocation.ByteLocToSnippet()
 	common.Check(err)
 
 	fmt.Printf("%s %d:%d\n", lastLocation.SourceFileName, lineNumber, columnNumber)

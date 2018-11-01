@@ -114,15 +114,15 @@ func main() {
 			if contractName == "" {
 				continue
 			}
-			lastLocation := sourceMaps[contractName][pcToOpIndex[traceOp.Pc]]
-			if lastLocation.ByteLength == -1 || lastLocation.ByteOffset == -1 || lastLocation.SourceFileName == "" {
+			location := sourceMaps[contractName][pcToOpIndex[traceOp.Pc]]
+			if location.ByteLength == -1 || location.ByteOffset == -1 || location.SourceFileName == "" {
 				continue
 			}
 
-			lineNumber, _, _, err := common.ByteLocToSnippet(lastLocation)
+			lineNumber, _, _, err := location.ByteLocToSnippet()
 			common.Check(err)
 
-			coverage[lastLocation.SourceFileName][lineNumber] += 1
+			coverage[location.SourceFileName][lineNumber] += 1
 		}
 	}
 

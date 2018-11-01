@@ -1,15 +1,27 @@
 package srcmap
 
 import (
+	"errors"
 	"encoding/json"
+	"fmt"
+	"html"
+	"io"
 	"os"
 	"os/exec"
+	"io/ioutil"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/coordination-institute/debugging-tools/common"
 )
+
+type OpSourceLocation struct {
+	ByteOffset     int
+	ByteLength     int
+	SourceFileName string
+	JumpType       rune
+}
 
 type solcCombinedJSON struct {
 	Contracts  map[string]runtimeArtifacts
@@ -22,7 +34,7 @@ type runtimeArtifacts struct {
 	BinRuntime    string `json:"bin-runtime"`
 }
 
-func Get(contractsPath string) (map[string][]common.OpSourceLocation, map[string]string, error) {
+func Get(contractsPath string) (map[string][]OpSourceLocation, map[string]string, error) {
 	var srcMapJSON solcCombinedJSON
 
 	var files []string
@@ -37,7 +49,7 @@ func Get(contractsPath string) (map[string][]common.OpSourceLocation, map[string
 	})
 
 	if err != nil {
-		return map[string][]common.OpSourceLocation{}, map[string]string{}, err
+		return map[string][]OpSourceLocation{}, map[string]string{}, err
 	}
 
 	solcArgs := append(
@@ -52,12 +64,12 @@ func Get(contractsPath string) (map[string][]common.OpSourceLocation, map[string
 	cmd.Dir = contractsPath
 	out, err := cmd.Output()
 	if err != nil {
-		return map[string][]common.OpSourceLocation{}, map[string]string{}, err
+		return map[string][]OpSourceLocation{}, map[string]string{}, err
 	}
 
 	err = json.Unmarshal(out, &srcMapJSON)
 	if err != nil {
-		return map[string][]common.OpSourceLocation{}, map[string]string{}, err
+		return map[string][]OpSourceLocation{}, map[string]string{}, err
 	}
 
 	bytecodeToFilename := make(map[string]string)
@@ -68,15 +80,15 @@ func Get(contractsPath string) (map[string][]common.OpSourceLocation, map[string
 		}
 	}
 
-	sourceMaps := map[string][]common.OpSourceLocation{}
+	sourceMaps := map[string][]OpSourceLocation{}
 	for contractName, artifacts := range srcMapJSON.Contracts {
 		srcMapSlice := strings.Split(artifacts.SrcmapRuntime, ";")
 
-		var opSourceLocations []common.OpSourceLocation
+		var opSourceLocations []OpSourceLocation
 		for i, instructionTuple := range srcMapSlice {
-			var currentStruct common.OpSourceLocation
+			var currentStruct OpSourceLocation
 			if i == 0 {
-				currentStruct = common.OpSourceLocation{}
+				currentStruct = OpSourceLocation{}
 			} else {
 				currentStruct = opSourceLocations[len(opSourceLocations)-1]
 			}
@@ -112,4 +124,63 @@ func Get(contractsPath string) (map[string][]common.OpSourceLocation, map[string
 		sourceMaps[contractName] = opSourceLocations
 	}
 	return sourceMaps, bytecodeToFilename, err
+}
+
+
+func (location OpSourceLocation) ByteLocToSnippet() (int, int, []byte, error) {
+	sourceFileReader, err := os.Open(location.SourceFileName)
+	if err != nil {
+		return 0, 0, []byte{}, err
+	}
+	sourceFileBeginning := make([]byte, location.ByteOffset+location.ByteLength)
+
+	_, err = io.ReadFull(sourceFileReader, sourceFileBeginning)
+	if err != nil {
+		return 0, 0, []byte{}, err
+	}
+	defer sourceFileReader.Close()
+
+	lineNumber := 1
+	columnNumber := 1
+	var codeSnippet []byte
+	for byteIndex, sourceByte := range sourceFileBeginning {
+		if byteIndex < location.ByteOffset {
+			columnNumber += 1
+			if sourceByte == '\n' {
+				lineNumber += 1
+				columnNumber = 1
+			}
+		} else {
+			codeSnippet = append(codeSnippet, sourceByte)
+		}
+	}
+	return lineNumber, columnNumber, codeSnippet, nil
+}
+
+const githubGreen string = "#e6ffed"
+
+func (location OpSourceLocation) LocationMarkup() ([]byte, error) {
+	if location.SourceFileName == "" {
+		return []byte{}, errors.New("Step source file not found.")
+	}
+
+	fmt.Printf("Location: {%d %d %s %c}\n", location.ByteOffset, location.ByteLength, location.SourceFileName, location.JumpType)
+
+	wholeSrc, err := ioutil.ReadFile(location.SourceFileName)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	srcBeginning := html.EscapeString(string(wholeSrc[0:location.ByteOffset]))
+	srcMiddle := html.EscapeString(string(wholeSrc[location.ByteOffset : location.ByteOffset+location.ByteLength]))
+	srcEnd := html.EscapeString(string(wholeSrc[location.ByteOffset+location.ByteLength : len(wholeSrc)-1]))
+
+	return []byte("<pre>" +
+		srcBeginning +
+		"<span style=\"background-color:" + githubGreen + ";\">" +
+		srcMiddle +
+		"</span>" +
+		srcEnd +
+		"</pre>",
+	), nil
 }
