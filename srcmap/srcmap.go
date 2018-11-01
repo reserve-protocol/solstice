@@ -43,7 +43,6 @@ func Get(contractsPath string) (map[string][]common.OpSourceLocation, map[string
 	solcArgs := append(
 		[]string{
 			"openzeppelin-solidity=./vendor/openzeppelin-solidity",
-			"rocketpool=./vendor/rocketpool",
 			"--optimize",
 			"--combined-json=srcmap-runtime,bin-runtime",
 		},

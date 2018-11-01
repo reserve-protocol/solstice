@@ -55,7 +55,7 @@ func main() {
 	lastLocation := srcmap[pcToOpIndex[lastProgramCounter]]
 
 	if lastLocation.SourceFileName == "" {
-		fmt.Printf("File name: %s\n has no source map.", filename)
+		fmt.Printf("File name:\n%s\nhas no source map.", filename)
 		return
 	}
 	fmt.Printf("Last location: {%d %d %s %c}\n", lastLocation.ByteOffset, lastLocation.ByteLength, lastLocation.SourceFileName, lastLocation.JumpType)

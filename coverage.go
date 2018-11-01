@@ -3,7 +3,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -46,24 +45,15 @@ func main() {
 		cmd := exec.Command(
 			"go",
 			"test",
-			filepath.Join(
-				"./github.com/coordination-institute/reserve/",
-				"./protocol/system_tests/",
-			),
-			"--tags",
-			"ethereum",
+			"github.com/coordination-institute/minimum/system_tests/",
 			"--count",
 			"1",
 		)
 
-		var out bytes.Buffer
-		var stderr bytes.Buffer
-		cmd.Stdout = &out
-		cmd.Stderr = &stderr
-		if cmd.Run() != nil {
-			fmt.Println("Tests return " + fmt.Sprint(err) + ": " + stderr.String())
-			if fmt.Sprint(err) != "exit status 1" || stderr.String() != "" {
-				panic(stderr.String())
+		if output, err := cmd.CombinedOutput(); err != nil {
+			fmt.Println("Tests return " + fmt.Sprint(err) + ": " + string(output))
+			if fmt.Sprint(err) != "exit status 1" || string(output) != "" {
+				panic(err)
 			}
 		}
 	}
