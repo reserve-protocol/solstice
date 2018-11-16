@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
@@ -15,43 +14,43 @@ import (
 )
 
 func main() {
-	var txnHash string
 	var contractsDir string
-	var pcIndex int
-	flag.StringVar(&txnHash, "txnHash", "0x0", "a transaction hash")
+	var txnHash string
+	var contractName string
 	flag.StringVar(&contractsDir, "contractsDir", "", "directory containing all the contracts")
-	flag.IntVar(&pcIndex, "pcIndex", -1, "Chosen index into exec trace")
+	flag.StringVar(&txnHash, "txnHash", "0x0", "a transaction hash")
+	flag.StringVar(&contractName, "contractName", "", "the full name of a specific contract")
 	flag.Parse()
 
 	contractsDir, err := filepath.Abs(contractsDir)
 	common.Check(err)
 
-	execTrace, err := parity.GetExecTrace(txnHash)
-	common.Check(err)
-
-	sourceMaps, bytecodeToFilename, err := srcmap.Get(contractsDir)
-	common.Check(err)
-
-	filename := bytecodeToFilename[common.RemoveMetaData(execTrace.Code)]
-	sourceMap := sourceMaps[filename]
-	if len(sourceMap) == 0 {
-		fmt.Println("Contract code not in contracts dir.")
-		return
-	}
-
 	workingDir, err := os.Getwd()
 	common.Check(err)
-	txnDir := workingDir + "/" + txnHash
 
-	if _, err := os.Stat(txnDir); os.IsNotExist(err) {
-	    os.Mkdir(txnDir, 0711)
-	} else {
+	if txnHash != "0x0" {
+		execTrace, err := parity.GetExecTrace(txnHash)
 		common.Check(err)
-	}
 
-	pcToOpIndex := trace.GetPcToOpIndex(execTrace.Code)
+		sourceMaps, bytecodeToFilename, err := srcmap.Get(contractsDir)
+		common.Check(err)
 
-	if pcIndex == -1 {
+		filename := bytecodeToFilename[common.RemoveMetaData(execTrace.Code)]
+		sourceMap := sourceMaps[filename]
+		if len(sourceMap) == 0 {
+			fmt.Println("Contract code not in contracts dir.")
+			return
+		}
+		dirName := workingDir + "/" + txnHash
+
+		if _, err := os.Stat(dirName); os.IsNotExist(err) {
+		    os.Mkdir(dirName, 0711)
+		} else {
+			common.Check(err)
+		}
+
+		pcToOpIndex := trace.GetPcToOpIndex(execTrace.Code)
+
 		var prevLoc srcmap.OpSourceLocation
 		for i, _ := range execTrace.Ops {
 			pc := execTrace.Ops[i].Pc
@@ -81,26 +80,28 @@ func main() {
 			}
 
 			common.Check(ioutil.WriteFile(
-				txnDir + "/" + fmt.Sprintf("%06d", i) + ".html",
+				dirName + "/" + fmt.Sprintf("%06d", i) + ".html",
 				markedUpSource,
 				0644,
 			))
 		}
 	} else {
-		pc := execTrace.Ops[pcIndex].Pc
-
-		if _, ok := pcToOpIndex[pc]; !ok {
-			fmt.Println("Something has gone wrong")
-			return
-		}
-
-		markedUpSource, err := sourceMap[pcToOpIndex[pc]].LocationMarkup()
+		ast, err := srcmap.GetAST(contractName, contractsDir)
 		common.Check(err)
+		fmt.Printf("%v\n", ast)
+		fmt.Printf("%v\n", ast.Children[3].Children[0].Children[0])
 
-		common.Check(ioutil.WriteFile(
-			txnDir + "/" + strconv.Itoa(pcIndex) + ".html",
-			markedUpSource,
-			0644,
-		))
+		displayTree(ast)
 	}
+}
+
+func displayTree(node srcmap.ASTTree) {
+	fmt.Printf("%v\n", node.SrcLoc)
+	// turn location into OpSourceLocation
+	// make a file of this source location
+	for _, childNode:= range node.Children {
+		displayTree(*childNode)
+	}
+
+	return
 }

@@ -26,7 +26,7 @@ type OpSourceLocation struct {
 type solcCombinedJSON struct {
 	Contracts  map[string]runtimeArtifacts
 	SourceList []string
-	Version    string
+	Sources    map[string]topASTNode
 }
 
 type runtimeArtifacts struct {
@@ -124,6 +124,96 @@ func Get(contractsPath string) (map[string][]OpSourceLocation, map[string]string
 		sourceMaps[contractName] = opSourceLocations
 	}
 	return sourceMaps, bytecodeToFilename, err
+}
+
+
+type topASTNode struct {
+	AST JSONASTTree
+}
+
+type JSONASTTree struct {
+	Id int
+	Src string
+	Children []*JSONASTTree
+	// name string
+	// attributes, which is a rich collection of information we're not using
+}
+
+type ASTTree struct {
+	Id int
+	SrcLoc OpSourceLocation
+	Children []*ASTTree
+}
+
+func GetAST(contractName string, contractsPath string) (ASTTree, error) {
+	cmd := exec.Command(
+		"solc",
+		"openzeppelin-solidity=./vendor/openzeppelin-solidity",
+		"--optimize",
+		"--combined-json=ast",
+		contractName,
+	)
+	cmd.Dir = contractsPath
+	out, err := cmd.Output()
+	if err != nil {
+		return ASTTree{}, err
+	}
+
+	var srcMapJSON solcCombinedJSON
+	err = json.Unmarshal(out, &srcMapJSON)
+	if err != nil {
+		return ASTTree{}, err
+	}
+
+	processedTree, err := processASTNode(
+		srcMapJSON.Sources[contractName].AST,
+		srcMapJSON.SourceList,
+	)
+	if err != nil {
+		return processedTree, err
+	}
+
+	return processedTree, nil
+}
+
+
+func processASTNode(node JSONASTTree, sourceList []string) (ASTTree, error) {
+	var newTree ASTTree
+
+	srcLocParts := strings.Split(node.Src, ":")
+
+	byteOffset, err := strconv.Atoi(srcLocParts[0])
+	if err != nil {
+		return newTree, err
+	}
+
+	byteLength, err := strconv.Atoi(srcLocParts[1])
+	if err != nil {
+		return newTree, err
+	}
+
+	sourceFileIndex, err := strconv.Atoi(srcLocParts[2])
+	if err != nil {
+		return newTree, err
+	}
+
+	newTree.Id = node.Id
+	newTree.SrcLoc = OpSourceLocation{
+		byteOffset,
+		byteLength,
+		sourceList[sourceFileIndex],
+		*new(rune),
+	}
+
+	for _, childNode:= range node.Children {
+		newNode, err := processASTNode(*childNode, sourceList)
+		if err != nil {
+			return newTree, err
+		}
+		newTree.Children = append(newTree.Children, &newNode)
+	}
+
+	return newTree, nil
 }
 
 

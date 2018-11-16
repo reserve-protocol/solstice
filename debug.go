@@ -14,10 +14,10 @@ import (
 )
 
 func main() {
-	var txnHash string
 	var contractsDir string
-	flag.StringVar(&txnHash, "txnHash", "0x0", "a transaction hash")
+	var txnHash string
 	flag.StringVar(&contractsDir, "contractsDir", "", "directory containing all the contracts")
+	flag.StringVar(&txnHash, "txnHash", "0x0", "a transaction hash")
 	flag.Parse()
 
 	contractsDir, err := filepath.Abs(contractsDir)
