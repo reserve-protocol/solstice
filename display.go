@@ -13,12 +13,14 @@ import (
 	"github.com/coordination-institute/debugging-tools/trace"
 )
 
+var dirName string
+
 func main() {
 	var contractsDir string
 	var txnHash string
 	var contractName string
 	flag.StringVar(&contractsDir, "contractsDir", "", "directory containing all the contracts")
-	flag.StringVar(&txnHash, "txnHash", "0x0", "a transaction hash")
+	flag.StringVar(&txnHash, "txnHash", "", "a transaction hash")
 	flag.StringVar(&contractName, "contractName", "", "the full name of a specific contract")
 	flag.Parse()
 
@@ -28,7 +30,19 @@ func main() {
 	workingDir, err := os.Getwd()
 	common.Check(err)
 
-	if txnHash != "0x0" {
+	if txnHash != "" {
+		dirName = workingDir + "/" + txnHash
+	} else {
+		dirName = workingDir + "/" + contractName
+	}
+
+	if _, err := os.Stat(dirName); os.IsNotExist(err) {
+	    os.Mkdir(dirName, 0711)
+	} else {
+		common.Check(err)
+	}
+
+	if txnHash != "" {
 		execTrace, err := parity.GetExecTrace(txnHash)
 		common.Check(err)
 
@@ -40,13 +54,6 @@ func main() {
 		if len(sourceMap) == 0 {
 			fmt.Println("Contract code not in contracts dir.")
 			return
-		}
-		dirName := workingDir + "/" + txnHash
-
-		if _, err := os.Stat(dirName); os.IsNotExist(err) {
-		    os.Mkdir(dirName, 0711)
-		} else {
-			common.Check(err)
 		}
 
 		pcToOpIndex := trace.GetPcToOpIndex(execTrace.Code)
@@ -79,29 +86,33 @@ func main() {
 				continue
 			}
 
-			common.Check(ioutil.WriteFile(
-				dirName + "/" + fmt.Sprintf("%06d", i) + ".html",
-				markedUpSource,
-				0644,
-			))
+			writeLocFile(markedUpSource, i)
 		}
 	} else {
 		ast, err := srcmap.GetAST(contractName, contractsDir)
 		common.Check(err)
-		fmt.Printf("%v\n", ast)
-		fmt.Printf("%v\n", ast.Children[3].Children[0].Children[0])
-
 		displayTree(ast)
 	}
 }
 
 func displayTree(node srcmap.ASTTree) {
-	fmt.Printf("%v\n", node.SrcLoc)
-	// turn location into OpSourceLocation
-	// make a file of this source location
+	markedUpSource, err := node.SrcLoc.LocationMarkup()
+	common.Check(err)
+
+	writeLocFile(markedUpSource, node.Id)
+
 	for _, childNode:= range node.Children {
 		displayTree(*childNode)
 	}
 
+	return
+}
+
+func writeLocFile(contents []byte, index int) {
+	common.Check(ioutil.WriteFile(
+		dirName + "/" + fmt.Sprintf("%06d", index) + ".html",
+		contents,
+		0644,
+	))
 	return
 }

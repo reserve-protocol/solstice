@@ -3,7 +3,6 @@ package srcmap
 import (
 	"errors"
 	"encoding/json"
-	"fmt"
 	"html"
 	"io"
 	"os"
@@ -168,6 +167,7 @@ func GetAST(contractName string, contractsPath string) (ASTTree, error) {
 	processedTree, err := processASTNode(
 		srcMapJSON.Sources[contractName].AST,
 		srcMapJSON.SourceList,
+		contractsPath,
 	)
 	if err != nil {
 		return processedTree, err
@@ -177,7 +177,7 @@ func GetAST(contractName string, contractsPath string) (ASTTree, error) {
 }
 
 
-func processASTNode(node JSONASTTree, sourceList []string) (ASTTree, error) {
+func processASTNode(node JSONASTTree, sourceList []string, contractsPath string) (ASTTree, error) {
 	var newTree ASTTree
 
 	srcLocParts := strings.Split(node.Src, ":")
@@ -201,12 +201,12 @@ func processASTNode(node JSONASTTree, sourceList []string) (ASTTree, error) {
 	newTree.SrcLoc = OpSourceLocation{
 		byteOffset,
 		byteLength,
-		sourceList[sourceFileIndex],
+		contractsPath + "/" + sourceList[sourceFileIndex],
 		*new(rune),
 	}
 
 	for _, childNode:= range node.Children {
-		newNode, err := processASTNode(*childNode, sourceList)
+		newNode, err := processASTNode(*childNode, sourceList, contractsPath)
 		if err != nil {
 			return newTree, err
 		}
@@ -254,8 +254,6 @@ func (location OpSourceLocation) LocationMarkup() ([]byte, error) {
 		return []byte{}, errors.New("Step source file not found.")
 	}
 
-	fmt.Printf("Location: {%d %d %s %c}\n", location.ByteOffset, location.ByteLength, location.SourceFileName, location.JumpType)
-
 	wholeSrc, err := ioutil.ReadFile(location.SourceFileName)
 	if err != nil {
 		return []byte{}, err
@@ -263,7 +261,7 @@ func (location OpSourceLocation) LocationMarkup() ([]byte, error) {
 
 	srcBeginning := html.EscapeString(string(wholeSrc[0:location.ByteOffset]))
 	srcMiddle := html.EscapeString(string(wholeSrc[location.ByteOffset : location.ByteOffset+location.ByteLength]))
-	srcEnd := html.EscapeString(string(wholeSrc[location.ByteOffset+location.ByteLength : len(wholeSrc)-1]))
+	srcEnd := html.EscapeString(string(wholeSrc[location.ByteOffset+location.ByteLength : len(wholeSrc)]))
 
 	return []byte("<pre>" +
 		srcBeginning +
