@@ -2,17 +2,16 @@ package srcmap
 
 import (
 	"errors"
-	"encoding/json"
 	"html"
 	"io"
 	"os"
-	"os/exec"
 	"io/ioutil"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/coordination-institute/debugging-tools/common"
+	"github.com/coordination-institute/debugging-tools/solc"
 )
 
 type OpSourceLocation struct {
@@ -22,20 +21,7 @@ type OpSourceLocation struct {
 	JumpType       rune
 }
 
-type solcCombinedJSON struct {
-	Contracts  map[string]runtimeArtifacts
-	SourceList []string
-	Sources    map[string]topASTNode
-}
-
-type runtimeArtifacts struct {
-	SrcmapRuntime string `json:"srcmap-runtime"`
-	BinRuntime    string `json:"bin-runtime"`
-}
-
 func Get(contractsPath string) (map[string][]OpSourceLocation, map[string]string, error) {
-	var srcMapJSON solcCombinedJSON
-
 	var files []string
 	err := filepath.Walk(contractsPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -51,22 +37,7 @@ func Get(contractsPath string) (map[string][]OpSourceLocation, map[string]string
 		return map[string][]OpSourceLocation{}, map[string]string{}, err
 	}
 
-	solcArgs := append(
-		[]string{
-			"openzeppelin-solidity=./vendor/openzeppelin-solidity",
-			"--optimize",
-			"--combined-json=srcmap-runtime,bin-runtime",
-		},
-		files...)
-
-	cmd := exec.Command("solc", solcArgs...)
-	cmd.Dir = contractsPath
-	out, err := cmd.Output()
-	if err != nil {
-		return map[string][]OpSourceLocation{}, map[string]string{}, err
-	}
-
-	err = json.Unmarshal(out, &srcMapJSON)
+	srcMapJSON, err := solc.GetCombinedJSON("srcmap-runtime,bin-runtime", files, contractsPath)
 	if err != nil {
 		return map[string][]OpSourceLocation{}, map[string]string{}, err
 	}
@@ -126,18 +97,6 @@ func Get(contractsPath string) (map[string][]OpSourceLocation, map[string]string
 }
 
 
-type topASTNode struct {
-	AST JSONASTTree
-}
-
-type JSONASTTree struct {
-	Id int
-	Src string
-	Children []*JSONASTTree
-	// name string
-	// attributes, which is a rich collection of information we're not using
-}
-
 type ASTTree struct {
 	Id int
 	SrcLoc OpSourceLocation
@@ -145,21 +104,7 @@ type ASTTree struct {
 }
 
 func GetAST(contractName string, contractsPath string) (ASTTree, error) {
-	cmd := exec.Command(
-		"solc",
-		"openzeppelin-solidity=./vendor/openzeppelin-solidity",
-		"--optimize",
-		"--combined-json=ast",
-		contractName,
-	)
-	cmd.Dir = contractsPath
-	out, err := cmd.Output()
-	if err != nil {
-		return ASTTree{}, err
-	}
-
-	var srcMapJSON solcCombinedJSON
-	err = json.Unmarshal(out, &srcMapJSON)
+	srcMapJSON, err := solc.GetCombinedJSON("ast", []string{contractName}, contractsPath)
 	if err != nil {
 		return ASTTree{}, err
 	}
@@ -169,16 +114,14 @@ func GetAST(contractName string, contractsPath string) (ASTTree, error) {
 		srcMapJSON.SourceList,
 		contractsPath,
 	)
-	if err != nil {
-		return processedTree, err
-	}
 
-	return processedTree, nil
+	return processedTree, err
 }
 
 
-func processASTNode(node JSONASTTree, sourceList []string, contractsPath string) (ASTTree, error) {
+func processASTNode(node solc.JSONASTTree, sourceList []string, contractsPath string) (ASTTree, error) {
 	var newTree ASTTree
+	newTree.Id = node.Id
 
 	srcLocParts := strings.Split(node.Src, ":")
 
@@ -197,7 +140,6 @@ func processASTNode(node JSONASTTree, sourceList []string, contractsPath string)
 		return newTree, err
 	}
 
-	newTree.Id = node.Id
 	newTree.SrcLoc = OpSourceLocation{
 		byteOffset,
 		byteLength,

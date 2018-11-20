@@ -73,6 +73,7 @@ func main() {
 				continue
 			}
 
+			// It's not currently useful to display duplicate execution steps
 			if nextLoc.ByteOffset == prevLoc.ByteOffset &&
 				nextLoc.ByteLength == prevLoc.ByteLength &&
 				nextLoc.SourceFileName == prevLoc.SourceFileName {

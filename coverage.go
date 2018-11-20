@@ -74,6 +74,7 @@ func main() {
 			if txn.To() != nil {
 				bytecode, err := client.CodeAt(context.TODO(), *txn.To(), block.Number())
 				common.Check(err)
+				// If it's a function call and not just an ETH txn
 				if len(bytecode) != 0 {
 					txns = append(txns, txn)
 				}
@@ -109,11 +110,11 @@ func main() {
 		execTrace, err := parity.GetExecTrace(fmt.Sprintf("0x%x", txn.Hash()))
 		common.Check(err)
 		pcToOpIndex := trace.GetPcToOpIndex(execTrace.Code)
+		contractName := bytecodeToFilename[common.RemoveMetaData(execTrace.Code)]
+		if contractName == "" {
+			continue
+		}
 		for _, traceOp := range execTrace.Ops {
-			contractName := bytecodeToFilename[common.RemoveMetaData(execTrace.Code)]
-			if contractName == "" {
-				continue
-			}
 			location := sourceMaps[contractName][pcToOpIndex[traceOp.Pc]]
 			if location.ByteLength == -1 || location.ByteOffset == -1 || location.SourceFileName == "" {
 				continue
