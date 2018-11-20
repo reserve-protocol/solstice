@@ -1,18 +1,15 @@
-// TODO: Things to make configurable; the contract directory, the client port number
-
 package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"math/big"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+    "github.com/spf13/viper"
 
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
@@ -21,18 +18,12 @@ import (
 )
 
 func main() {
-	var contractsDir string
-	flag.StringVar(&contractsDir, "contractsDir", "", "the directory containing all the contracts")
-	flag.Parse()
+	common.Check(common.ReadConfig())
 
-	contractsDir, err := filepath.Abs(contractsDir)
+	client, err := ethclient.Dial(viper.GetString("blockchain_client"))
 	common.Check(err)
 
-	// TODO: Make this port etc configurable
-	client, err := ethclient.Dial("http://127.0.0.1:8545")
-	common.Check(err)
-
-	sourceMaps, bytecodeToFilename, err := srcmap.Get(contractsDir)
+	sourceMaps, bytecodeToFilename, err := srcmap.Get()
 	common.Check(err)
 
 	headerBeforeTests, err := client.HeaderByNumber(context.Background(), nil)

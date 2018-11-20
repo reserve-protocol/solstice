@@ -1,11 +1,8 @@
-// TODO: Things to make configurable; the contract directory, the client port number
-
 package main
 
 import (
 	"flag"
 	"fmt"
-	"path/filepath"
 
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
@@ -14,14 +11,11 @@ import (
 )
 
 func main() {
-	var contractsDir string
+	common.Check(common.ReadConfig())
+
 	var txnHash string
-	flag.StringVar(&contractsDir, "contractsDir", "", "directory containing all the contracts")
 	flag.StringVar(&txnHash, "txnHash", "0x0", "a transaction hash")
 	flag.Parse()
-
-	contractsDir, err := filepath.Abs(contractsDir)
-	common.Check(err)
 
 	execTrace, err := parity.GetExecTrace(txnHash)
 	common.Check(err)
@@ -38,7 +32,7 @@ func main() {
 
 	// Now you have pcToOpIndex[lastProgramCounter] with which to pick an operation from the source map
 
-	sourceMaps, bytecodeToFilename, err := srcmap.Get(contractsDir)
+	sourceMaps, bytecodeToFilename, err := srcmap.Get()
 	common.Check(err)
 
 	filename := bytecodeToFilename[common.RemoveMetaData(execTrace.Code)]

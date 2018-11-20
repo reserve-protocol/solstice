@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+    "github.com/spf13/viper"
+
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/solc"
 )
@@ -21,9 +23,9 @@ type OpSourceLocation struct {
 	JumpType       rune
 }
 
-func Get(contractsPath string) (map[string][]OpSourceLocation, map[string]string, error) {
+func Get() (map[string][]OpSourceLocation, map[string]string, error) {
 	var files []string
-	err := filepath.Walk(contractsPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(viper.GetString("contracts_dir"), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -37,7 +39,7 @@ func Get(contractsPath string) (map[string][]OpSourceLocation, map[string]string
 		return map[string][]OpSourceLocation{}, map[string]string{}, err
 	}
 
-	srcMapJSON, err := solc.GetCombinedJSON("srcmap-runtime,bin-runtime", files, contractsPath)
+	srcMapJSON, err := solc.GetCombinedJSON("srcmap-runtime,bin-runtime", files)
 	if err != nil {
 		return map[string][]OpSourceLocation{}, map[string]string{}, err
 	}
@@ -103,8 +105,8 @@ type ASTTree struct {
 	Children []*ASTTree
 }
 
-func GetAST(contractName string, contractsPath string) (ASTTree, error) {
-	srcMapJSON, err := solc.GetCombinedJSON("ast", []string{contractName}, contractsPath)
+func GetAST(contractName string) (ASTTree, error) {
+	srcMapJSON, err := solc.GetCombinedJSON("ast", []string{contractName})
 	if err != nil {
 		return ASTTree{}, err
 	}
@@ -112,14 +114,13 @@ func GetAST(contractName string, contractsPath string) (ASTTree, error) {
 	processedTree, err := processASTNode(
 		srcMapJSON.Sources[contractName].AST,
 		srcMapJSON.SourceList,
-		contractsPath,
 	)
 
 	return processedTree, err
 }
 
 
-func processASTNode(node solc.JSONASTTree, sourceList []string, contractsPath string) (ASTTree, error) {
+func processASTNode(node solc.JSONASTTree, sourceList []string) (ASTTree, error) {
 	var newTree ASTTree
 	newTree.Id = node.Id
 
@@ -143,12 +144,12 @@ func processASTNode(node solc.JSONASTTree, sourceList []string, contractsPath st
 	newTree.SrcLoc = OpSourceLocation{
 		byteOffset,
 		byteLength,
-		contractsPath + "/" + sourceList[sourceFileIndex],
+		viper.GetString("contracts_dir") + "/" + sourceList[sourceFileIndex],
 		*new(rune),
 	}
 
 	for _, childNode:= range node.Children {
-		newNode, err := processASTNode(*childNode, sourceList, contractsPath)
+		newNode, err := processASTNode(*childNode, sourceList)
 		if err != nil {
 			return newTree, err
 		}

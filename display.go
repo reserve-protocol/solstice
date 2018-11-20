@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
@@ -16,16 +15,13 @@ import (
 var dirName string
 
 func main() {
-	var contractsDir string
+	common.Check(common.ReadConfig())
+
 	var txnHash string
 	var contractName string
-	flag.StringVar(&contractsDir, "contractsDir", "", "directory containing all the contracts")
 	flag.StringVar(&txnHash, "txnHash", "", "a transaction hash")
 	flag.StringVar(&contractName, "contractName", "", "the full name of a specific contract")
 	flag.Parse()
-
-	contractsDir, err := filepath.Abs(contractsDir)
-	common.Check(err)
 
 	workingDir, err := os.Getwd()
 	common.Check(err)
@@ -46,7 +42,7 @@ func main() {
 		execTrace, err := parity.GetExecTrace(txnHash)
 		common.Check(err)
 
-		sourceMaps, bytecodeToFilename, err := srcmap.Get(contractsDir)
+		sourceMaps, bytecodeToFilename, err := srcmap.Get()
 		common.Check(err)
 
 		filename := bytecodeToFilename[common.RemoveMetaData(execTrace.Code)]
@@ -90,7 +86,7 @@ func main() {
 			writeLocFile(markedUpSource, i)
 		}
 	} else {
-		ast, err := srcmap.GetAST(contractName, contractsDir)
+		ast, err := srcmap.GetAST(contractName)
 		common.Check(err)
 		displayTree(ast)
 	}
