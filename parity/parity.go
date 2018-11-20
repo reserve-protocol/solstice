@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+    "github.com/spf13/viper"
 )
 
 type jsonrpcResponse struct {
@@ -42,7 +44,7 @@ type execTraceOpEx struct {
 
 func GetExecTrace(txnHash string) (VmTrace, error) {
 	resp, err := http.Post(
-		"http://127.0.0.1:8545",
+		viper.GetString("blockchain_client"),
 		"application/json",
 		strings.NewReader(
 			fmt.Sprintf(

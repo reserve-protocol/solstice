@@ -32,13 +32,10 @@ func main() {
 
 	// Run tests
 	{
-		// TODO: Make this configurable
+		args := viper.GetStringSlice("test_command")
 		cmd := exec.Command(
-			"go",
-			"test",
-			"github.com/coordination-institute/minimum/system_tests/",
-			"--count",
-			"1",
+			args[0],
+			args[1:len(args)]...
 		)
 
 		if output, err := cmd.CombinedOutput(); err != nil {

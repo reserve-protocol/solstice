@@ -33,12 +33,12 @@ type JSONASTTree struct {
 func GetCombinedJSON(artifactList string, contracts []string) (CombinedJSON, error) {
     var outputJSON CombinedJSON
     solcArgs := append(
-        []string{
-            "openzeppelin-solidity=./vendor/openzeppelin-solidity",
-            "--optimize",
+        append(
+            viper.GetStringSlice("solc_args"),
             "--combined-json=" + artifactList,
-        },
-        contracts...)
+        ),
+        contracts...
+    )
 
     cmd := exec.Command("solc", solcArgs...)
     cmd.Dir = viper.GetString("contracts_dir")
