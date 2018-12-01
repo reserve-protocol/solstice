@@ -3,8 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"html"
+	"io/ioutil"
 	"math/big"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/core/types"
@@ -35,7 +40,7 @@ func main() {
 		args := viper.GetStringSlice("test_command")
 		cmd := exec.Command(
 			args[0],
-			args[1:len(args)]...
+			args[1:]...
 		)
 
 		if output, err := cmd.CombinedOutput(); err != nil {
@@ -70,27 +75,33 @@ func main() {
 		}
 	}
 
-	sourceFileNameSet := make(map[string]struct{})
-	sourceFileNameSlice := []string{}
+	// We have a list of contract names, but we need a list of file names; there can be many contracts per file.
+	sourceFileName := []string{}
+	{
+		sourceFileNameSet := make(map[string]struct{})
+		i := 0
+		for contractName := range sourceMaps {
+			filename := strings.Split(contractName, ":")[0]
 
-	i := 0
-	for contractName := range sourceMaps {
-		filename := strings.Split(contractName, ":")[0]
+			if _, ok := sourceFileNameSet[filename]; !ok {
+				sourceFileNameSet[filename] = struct{}{}
+				sourceFileName = append(sourceFileName, filename)
+			}
 
-		if _, ok := sourceFileNameSet[filename]; !ok {
-			sourceFileNameSet[filename] = struct{}{}
-			sourceFileNameSlice = append(sourceFileNameSlice, filename)
+			i++
 		}
-
-		i++
 	}
 
+
+
+
+
 	// Initialize the coverage report
-	coverage := make(map[string][]int)
-	for _, sourceFileName := range sourceFileNameSlice {
-		lineLength, err := common.NumberOfLines(sourceFileName)
+	coverageMap := make(map[string][]srcmap.CoverageLoc)
+	for _, sourceFileName := range sourceFileName {
+		coverageLocs, err := srcmap.GetCoverageLocs(sourceFileName)
 		common.Check(err)
-		coverage[sourceFileName] = make([]int, lineLength)
+		coverageMap[sourceFileName] = coverageLocs
 	}
 
 	// Fill the coverage report
@@ -103,25 +114,124 @@ func main() {
 			continue
 		}
 		for _, traceOp := range execTrace.Ops {
-			location := sourceMaps[contractName][pcToOpIndex[traceOp.Pc]]
-			if location.ByteLength == -1 || location.ByteOffset == -1 || location.SourceFileName == "" {
+			traceLoc := sourceMaps[contractName][pcToOpIndex[traceOp.Pc]]
+			if traceLoc.ByteLength == -1 || traceLoc.ByteOffset == -1 || traceLoc.SourceFileName == "" {
+				continue
+			}
+			if traceLoc.ByteLength == 0 {
 				continue
 			}
 
-			lineNumber, _, _, err := location.ByteLocToSnippet()
-			common.Check(err)
-
-			coverage[location.SourceFileName][lineNumber] += 1
-		}
-	}
-
-	// Print the coverage report
-	for filename, lines := range coverage {
-		fmt.Println(filename)
-		for linenumber, count := range lines {
-			if count != 0 {
-				fmt.Printf("Line %d has %d hits\n", linenumber, count)
+			for i, coverageLoc := range coverageMap[traceLoc.SourceFileName] {
+				if coverageLoc.CoverageRange.ByteLength == traceLoc.ByteLength &&
+					coverageLoc.CoverageRange.ByteOffset == traceLoc.ByteOffset {
+					coverageMap[traceLoc.SourceFileName][i].HitCount += 1
+				}
 			}
 		}
 	}
+
+	// I'm printing it as a sanity check
+	// for file, locs := range coverageMap {
+	// 	fmt.Printf("File: %v\n", file)
+	// 	fmt.Println("Locs:")
+	// 	for _, loc := range locs {
+	// 		fmt.Printf("    SrcLoc: %v, %v, %v\n", loc.CoverageRange.ByteOffset, loc.CoverageRange.ByteLength, loc.HitCount)
+	// 		if len(loc.SrcLocs) == 1 {
+	// 			continue
+	// 		}
+	// 		for _, piece := range loc.SrcLocs {
+	// 			fmt.Printf("        %v, %v\n", piece.ByteOffset, piece.ByteLength)
+	// 		}
+	// 	}
+	// }
+
+	// Write the coverage report
+	for filename, locs := range coverageMap {
+		origSource, err := ioutil.ReadFile(filename)
+		common.Check(err)
+
+		var flatLocs []coverageCount
+		for _, covLoc := range locs {
+			for _, loc := range covLoc.SrcLocs {
+				if loc.ByteLength == 0 {
+					continue
+				}
+
+				flatLocs = append(flatLocs, coverageCount{
+					loc,
+					covLoc.HitCount,
+				})
+			}
+		}
+
+		sortedLocs := byByteOffset(flatLocs)
+		sort.Sort(sortedLocs)
+
+		markedUpString := "<pre>"
+		markupIndex := 0
+
+		for _, covCountLoc := range sortedLocs {
+			if covCountLoc.SrcLoc.ByteLength == 0 {
+				continue
+			}
+
+			// if covCountLoc.SrcLoc.ByteOffset < markupIndex {
+			// 	continue
+			// }
+			markedUpString += html.EscapeString(string(origSource[markupIndex : covCountLoc.SrcLoc.ByteOffset]))
+			if covCountLoc.count == 0 {
+				markedUpString += "<span style=\"background-color:" + srcmap.GithubRed + ";\">"
+			} else {
+				markedUpString += "<span style=\"background-color:" + srcmap.GithubGreen + ";\">"
+			}
+			// if covCountLoc.SrcLoc.ByteOffset + covCountLoc.SrcLoc.ByteLength > len(origSource) ||
+			//     covCountLoc.SrcLoc.ByteOffset > len(origSource) || 
+			//     covCountLoc.SrcLoc.ByteOffset > covCountLoc.SrcLoc.ByteOffset + covCountLoc.SrcLoc.ByteLength {
+			// 	fmt.Printf("length: %v\n", len(origSource))
+			// 	fmt.Printf("covCountLoc.SrcLoc: %v\n", covCountLoc.SrcLoc)
+			// }
+			markedUpString += html.EscapeString(string(origSource[covCountLoc.SrcLoc.ByteOffset : covCountLoc.SrcLoc.ByteOffset + covCountLoc.SrcLoc.ByteLength]))
+			markedUpString += "</span>"
+			markupIndex = covCountLoc.SrcLoc.ByteOffset + covCountLoc.SrcLoc.ByteLength
+		}
+
+		markedUpString += "</pre>"
+		markedUpSource := []byte(markedUpString)
+
+		relativeFileName := strings.TrimPrefix(filename, viper.GetString("contracts_dir"))
+		reportFileName := viper.GetString("coverage_report_dir") + relativeFileName + ".html"
+
+		if _, err := os.Stat(filepath.Dir(reportFileName)); os.IsNotExist(err) {
+		    common.Check(os.MkdirAll(filepath.Dir(reportFileName), 0711))
+		} else {
+			common.Check(err)
+		}
+
+		common.Check(ioutil.WriteFile(reportFileName, markedUpSource, 0644))
+	}
 }
+
+type coverageCount struct {
+	SrcLoc srcmap.OpSourceLocation
+	count  int
+}
+
+// ~~~~~~~ Sorting OpSourceLocations ~~~~~~~
+type byByteOffset []coverageCount
+
+func (ls byByteOffset) Len() int {
+    return len(ls)
+}
+
+func (ls byByteOffset) Swap(i, j int) {
+    ls[i], ls[j] = ls[j], ls[i]
+}
+
+func (ls byByteOffset) Less(i, j int) bool {
+	// If they have the same byte offset, my current belief is that that can
+	// only happen if one of them is empty. In that case, we're going to throw
+	// it away anyway.
+    return ls[i].SrcLoc.ByteOffset < ls[j].SrcLoc.ByteOffset
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
+    "github.com/spf13/viper"
+
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/srcmap"
@@ -20,7 +22,7 @@ func main() {
 	var txnHash string
 	var contractName string
 	flag.StringVar(&txnHash, "txnHash", "", "a transaction hash")
-	flag.StringVar(&contractName, "contractName", "", "the full name of a specific contract")
+	flag.StringVar(&contractName, "contractName", "", "the name of a specific contract")
 	flag.Parse()
 
 	workingDir, err := os.Getwd()
@@ -33,7 +35,7 @@ func main() {
 	}
 
 	if _, err := os.Stat(dirName); os.IsNotExist(err) {
-	    os.Mkdir(dirName, 0711)
+	    os.MkdirAll(dirName, 0711)
 	} else {
 		common.Check(err)
 	}
@@ -83,10 +85,10 @@ func main() {
 				continue
 			}
 
-			writeLocFile(markedUpSource, i)
+			writeLocFile(markedUpSource, uint(i))
 		}
 	} else {
-		ast, err := srcmap.GetAST(contractName)
+		ast, err := srcmap.GetAST(viper.GetString("contracts_dir") + "/" + contractName)
 		common.Check(err)
 		displayTree(ast)
 	}
@@ -105,7 +107,7 @@ func displayTree(node srcmap.ASTTree) {
 	return
 }
 
-func writeLocFile(contents []byte, index int) {
+func writeLocFile(contents []byte, index uint) {
 	common.Check(ioutil.WriteFile(
 		dirName + "/" + fmt.Sprintf("%06d", index) + ".html",
 		contents,

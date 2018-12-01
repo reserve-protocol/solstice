@@ -1,0 +1,15 @@
+contracts_dir: /home/altair/go/src/github.com/coordination-institute/reserve/protocol/ethereum/contracts
+coverage_report_dir: /home/altair/go/src/github.com/coordination-institute/debugging-tools/coverage_reports/reserve
+blockchain_client: http://127.0.0.1:8545
+test_command:
+  - go
+  - test
+  - github.com/coordination-institute/reserve/protocol/system_tests/
+  - --count
+  - 1
+  - --tags
+  - ethereum
+solc_args:
+  - --optimize
+  - --allow-paths
+  - /home/altair/go/src/github.com/coordination-institute/reserve/protocol/ethereum/contracts
