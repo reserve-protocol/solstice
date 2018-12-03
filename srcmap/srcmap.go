@@ -17,14 +17,14 @@ import (
 	"github.com/coordination-institute/debugging-tools/solc"
 )
 
-type OpSourceLocation struct {
+type SourceLocation struct {
 	ByteOffset     int
 	ByteLength     int
 	SourceFileName string
 	JumpType       rune
 }
 
-func Get() (map[string][]OpSourceLocation, map[string]string, error) {
+func Get() (map[string][]SourceLocation, map[string]string, error) {
 	var files []string
 	err := filepath.Walk(viper.GetString("contracts_dir"), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -37,12 +37,12 @@ func Get() (map[string][]OpSourceLocation, map[string]string, error) {
 	})
 
 	if err != nil {
-		return map[string][]OpSourceLocation{}, map[string]string{}, err
+		return map[string][]SourceLocation{}, map[string]string{}, err
 	}
 
 	srcMapJSON, err := solc.GetCombinedJSON("srcmap-runtime,bin-runtime", files)
 	if err != nil {
-		return map[string][]OpSourceLocation{}, map[string]string{}, err
+		return map[string][]SourceLocation{}, map[string]string{}, err
 	}
 
 	bytecodeToFilename := make(map[string]string)
@@ -53,15 +53,15 @@ func Get() (map[string][]OpSourceLocation, map[string]string, error) {
 		}
 	}
 
-	sourceMaps := map[string][]OpSourceLocation{}
+	sourceMaps := map[string][]SourceLocation{}
 	for contractName, artifacts := range srcMapJSON.Contracts {
 		srcMapSlice := strings.Split(artifacts.SrcmapRuntime, ";")
 
-		var opSourceLocations []OpSourceLocation
+		var opSourceLocations []SourceLocation
 		for i, instructionTuple := range srcMapSlice {
-			var currentStruct OpSourceLocation
+			var currentStruct SourceLocation
 			if i == 0 {
-				currentStruct = OpSourceLocation{}
+				currentStruct = SourceLocation{}
 			} else {
 				currentStruct = opSourceLocations[len(opSourceLocations)-1]
 			}
@@ -102,7 +102,7 @@ func Get() (map[string][]OpSourceLocation, map[string]string, error) {
 
 type ASTTree struct {
 	Id uint
-	SrcLoc OpSourceLocation
+	SrcLoc SourceLocation
 	Children []*ASTTree
 }
 
@@ -141,7 +141,7 @@ func processASTNode(node solc.JSONASTTree, sourceList []string) (ASTTree, error)
 		return newTree, err
 	}
 
-	newTree.SrcLoc = OpSourceLocation{
+	newTree.SrcLoc = SourceLocation{
 		byteOffset,
 		byteLength,
 		sourceList[sourceFileIndex],
@@ -181,8 +181,8 @@ func (s byByteOffset) Less(i, j int) bool {
 
 type CoverageLoc struct {
 	HitCount      int
-	CoverageRange OpSourceLocation
-	SrcLocs       []OpSourceLocation
+	CoverageRange SourceLocation
+	SrcLocs       []SourceLocation
 }
 
 func GetCoverageLocs(filename string) ([]CoverageLoc, error) {
@@ -232,13 +232,13 @@ func ToCoverageLocs(node ASTTree) ([]CoverageLoc, error) {
 		covLoc.SrcLocs = append(
 			// Cut off the last one, since we just split it in two.
 			covLoc.SrcLocs[:len(covLoc.SrcLocs)-1],
-			OpSourceLocation{
+			SourceLocation{
 				byteOffset1,
 				byteLength1,
 				node.SrcLoc.SourceFileName,
 				*new(rune),
 			},
-			OpSourceLocation{
+			SourceLocation{
 				byteOffset2,
 				byteLength2,
 				node.SrcLoc.SourceFileName,
@@ -260,7 +260,7 @@ func ToCoverageLocs(node ASTTree) ([]CoverageLoc, error) {
 
 
 
-func (location OpSourceLocation) ByteLocToSnippet() (int, int, []byte, error) {
+func (location SourceLocation) ByteLocToSnippet() (int, int, []byte, error) {
 	sourceFileReader, err := os.Open(location.SourceFileName)
 	if err != nil {
 		return 0, 0, []byte{}, err
@@ -293,7 +293,7 @@ func (location OpSourceLocation) ByteLocToSnippet() (int, int, []byte, error) {
 const GithubGreen string = "#e6ffed"
 const GithubRed string = "#ffeef0"
 
-func (location OpSourceLocation) LocationMarkup() ([]byte, error) {
+func (location SourceLocation) LocationMarkup() ([]byte, error) {
 	if location.SourceFileName == "" {
 		return []byte{}, errors.New("Step source file not found.")
 	}

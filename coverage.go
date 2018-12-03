@@ -213,11 +213,11 @@ func main() {
 }
 
 type coverageCount struct {
-	SrcLoc srcmap.OpSourceLocation
+	SrcLoc srcmap.SourceLocation
 	count  int
 }
 
-// ~~~~~~~ Sorting OpSourceLocations ~~~~~~~
+// ~~~~~~~ Sorting SourceLocations ~~~~~~~
 type byByteOffset []coverageCount
 
 func (ls byByteOffset) Len() int {

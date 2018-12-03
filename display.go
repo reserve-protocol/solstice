@@ -56,7 +56,7 @@ func main() {
 
 		pcToOpIndex := evmbytecode.GetPcToOpIndex(execTrace.Code)
 
-		var prevLoc srcmap.OpSourceLocation
+		var prevLoc srcmap.SourceLocation
 		for i, _ := range execTrace.Ops {
 			pc := execTrace.Ops[i].Pc
 
