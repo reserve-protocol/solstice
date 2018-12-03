@@ -10,3 +10,9 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Default place for printing coverage reports
+coverage_reports
+
+# The script I'm using to run bare-bones tests
+test_commands.sh
