@@ -13,7 +13,7 @@ import (
 
     "github.com/spf13/viper"
 
-	"github.com/coordination-institute/debugging-tools/common"
+	"github.com/coordination-institute/debugging-tools/evmbytecode"
 	"github.com/coordination-institute/debugging-tools/solc"
 )
 
@@ -49,7 +49,7 @@ func Get() (map[string][]OpSourceLocation, map[string]string, error) {
 	for contractName, artifacts := range srcMapJSON.Contracts {
 		if len(artifacts.BinRuntime) != 0 {
 			bytecode := "0x" + artifacts.BinRuntime
-			bytecodeToFilename[common.RemoveMetaData(bytecode)] = contractName
+			bytecodeToFilename[evmbytecode.RemoveMetaData(bytecode)] = contractName
 		}
 	}
 

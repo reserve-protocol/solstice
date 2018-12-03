@@ -100,7 +100,7 @@ func main() {
 		execTrace, err := parity.GetExecTrace(fmt.Sprintf("0x%x", txn.Hash()))
 		common.Check(err)
 		pcToOpIndex := evmbytecode.GetPcToOpIndex(execTrace.Code)
-		contractName := bytecodeToFilename[common.RemoveMetaData(execTrace.Code)]
+		contractName := bytecodeToFilename[evmbytecode.RemoveMetaData(execTrace.Code)]
 		if contractName == "" {
 			continue
 		}
