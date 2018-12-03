@@ -7,7 +7,7 @@ import (
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/srcmap"
-	"github.com/coordination-institute/debugging-tools/trace"
+	"github.com/coordination-institute/debugging-tools/evmbytecode"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 		return
 	}
 
-	pcToOpIndex := trace.GetPcToOpIndex(execTrace.Code)
+	pcToOpIndex := evmbytecode.GetPcToOpIndex(execTrace.Code)
 
 	lastProgramCounter := execTrace.Ops[len(execTrace.Ops)-1].Pc
 	fmt.Printf("Last program counter: %v\n", lastProgramCounter)

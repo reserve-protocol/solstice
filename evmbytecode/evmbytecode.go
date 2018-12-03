@@ -1,9 +1,10 @@
-package trace
+package evmbytecode
 
 import (
 	"strings"
 )
 
+// Stands for Get Program Counter--to--Operation Index mapping
 func GetPcToOpIndex(bytecode string) map[int]int {
 	var pcToOpIndex = make(map[int]int)
 

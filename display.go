@@ -11,7 +11,7 @@ import (
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/srcmap"
-	"github.com/coordination-institute/debugging-tools/trace"
+	"github.com/coordination-institute/debugging-tools/evmbytecode"
 )
 
 var dirName string
@@ -54,7 +54,7 @@ func main() {
 			return
 		}
 
-		pcToOpIndex := trace.GetPcToOpIndex(execTrace.Code)
+		pcToOpIndex := evmbytecode.GetPcToOpIndex(execTrace.Code)
 
 		var prevLoc srcmap.OpSourceLocation
 		for i, _ := range execTrace.Ops {

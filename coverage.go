@@ -19,7 +19,7 @@ import (
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/srcmap"
-	"github.com/coordination-institute/debugging-tools/trace"
+	"github.com/coordination-institute/debugging-tools/evmbytecode"
 )
 
 func main() {
@@ -108,7 +108,7 @@ func main() {
 	for _, txn := range txns {
 		execTrace, err := parity.GetExecTrace(fmt.Sprintf("0x%x", txn.Hash()))
 		common.Check(err)
-		pcToOpIndex := trace.GetPcToOpIndex(execTrace.Code)
+		pcToOpIndex := evmbytecode.GetPcToOpIndex(execTrace.Code)
 		contractName := bytecodeToFilename[common.RemoveMetaData(execTrace.Code)]
 		if contractName == "" {
 			continue
