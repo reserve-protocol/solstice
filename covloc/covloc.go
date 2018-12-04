@@ -20,7 +20,7 @@ func Get(filename string) ([]CoverageLoc, error) {
         return []CoverageLoc{}, err
     }
 
-    covLocs, err := toCoverageLocs(plainAST)
+    covLocs, err := ToCoverageLocs(plainAST)
     if err != nil {
         return []CoverageLoc{}, err
     }
@@ -28,7 +28,7 @@ func Get(filename string) ([]CoverageLoc, error) {
     // sort coverageLocs by .CoverageRange.ByteOffset
 }
 
-func toCoverageLocs(node ast.ASTTree) ([]CoverageLoc, error) {
+func ToCoverageLocs(node ast.ASTTree) ([]CoverageLoc, error) {
     var covLocs []CoverageLoc
     var covLoc CoverageLoc
     covLoc.CoverageRange = node.SrcLoc
@@ -63,31 +63,41 @@ func toCoverageLocs(node ast.ASTTree) ([]CoverageLoc, error) {
             return covLocs, errors.New("Negative byte length2")
         }
 
-        covLoc.SrcLocs = append(
-            // Cut off the last one, since we just split it in two.
-            covLoc.SrcLocs[:len(covLoc.SrcLocs)-1],
-            srclocation.SourceLocation{
+        // Cut off the last one, since we're splitting it in two.
+        covLoc.SrcLocs = covLoc.SrcLocs[:len(covLoc.SrcLocs)-1]
+
+        if byteLength1 != 0 {
+            covLoc.SrcLocs = append(covLoc.SrcLocs, srclocation.SourceLocation{
                 byteOffset1,
                 byteLength1,
                 node.SrcLoc.SourceFileName,
                 *new(rune),
-            },
-            srclocation.SourceLocation{
+            })
+        }
+
+        if byteLength2 != 0 {
+            covLoc.SrcLocs = append(covLoc.SrcLocs, srclocation.SourceLocation{
                 byteOffset2,
                 byteLength2,
                 node.SrcLoc.SourceFileName,
                 *new(rune),
-            },
-        )
+            })
+        }
 
-        childCovLocs, err := toCoverageLocs(*childNode)
+        childCovLocs, err := ToCoverageLocs(*childNode)
         if err == nil {
             covLocs = append(covLocs, childCovLocs...)
         }
 
     }
+
     covLocs = append(covLocs, covLoc)
-    // TODO: sort coverLocs
+    sort.Slice(covLocs, func(i, j int) bool {
+        if covLocs[i].CoverageRange.ByteOffset == covLocs[j].CoverageRange.ByteOffset {
+            return covLocs[i].CoverageRange.ByteLength < covLocs[j].CoverageRange.ByteLength
+        }
+        return covLocs[i].CoverageRange.ByteOffset < covLocs[j].CoverageRange.ByteOffset
+    })
     return covLocs, nil
 }
 

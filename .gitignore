@@ -15,4 +15,4 @@
 coverage_reports
 
 # The script I'm using to run bare-bones tests
-test_commands.sh
+run_commands.sh
