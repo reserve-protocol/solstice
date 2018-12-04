@@ -14,14 +14,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-    "github.com/spf13/viper"
+	"github.com/spf13/viper"
 
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/covloc"
+	"github.com/coordination-institute/debugging-tools/evmbytecode"
 	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/srclocation"
 	"github.com/coordination-institute/debugging-tools/srcmap"
-	"github.com/coordination-institute/debugging-tools/evmbytecode"
 )
 
 func main() {
@@ -42,7 +42,7 @@ func main() {
 		args := viper.GetStringSlice("test_command")
 		cmd := exec.Command(
 			args[0],
-			args[1:]...
+			args[1:]...,
 		)
 
 		if output, err := cmd.CombinedOutput(); err != nil {
@@ -93,10 +93,6 @@ func main() {
 			i++
 		}
 	}
-
-
-
-
 
 	// Initialize the coverage report
 	coverageMap := make(map[string][]covloc.CoverageLoc)
@@ -169,9 +165,9 @@ func main() {
 
 		sort.Slice(flatLocs, func(i, j int) bool {
 			// If they have the same byte offset, my current belief is that that can
-	    	// only happen if one of them is empty. In that case, we're going to throw
-	    	// it away anyway.
-    		return flatLocs[i].SrcLoc.ByteOffset < flatLocs[j].SrcLoc.ByteOffset
+			// only happen if one of them is empty. In that case, we're going to throw
+			// it away anyway.
+			return flatLocs[i].SrcLoc.ByteOffset < flatLocs[j].SrcLoc.ByteOffset
 		})
 
 		markedUpString := "<pre>"
@@ -185,19 +181,19 @@ func main() {
 			// if covCountLoc.SrcLoc.ByteOffset < markupIndex {
 			// 	continue
 			// }
-			markedUpString += html.EscapeString(string(origSource[markupIndex : covCountLoc.SrcLoc.ByteOffset]))
+			markedUpString += html.EscapeString(string(origSource[markupIndex:covCountLoc.SrcLoc.ByteOffset]))
 			if covCountLoc.Count == 0 {
 				markedUpString += "<span style=\"background-color:" + srclocation.GithubRed + ";\">"
 			} else {
 				markedUpString += "<span style=\"background-color:" + srclocation.GithubGreen + ";\">"
 			}
 			// if covCountLoc.SrcLoc.ByteOffset + covCountLoc.SrcLoc.ByteLength > len(origSource) ||
-			//     covCountLoc.SrcLoc.ByteOffset > len(origSource) || 
+			//     covCountLoc.SrcLoc.ByteOffset > len(origSource) ||
 			//     covCountLoc.SrcLoc.ByteOffset > covCountLoc.SrcLoc.ByteOffset + covCountLoc.SrcLoc.ByteLength {
 			// 	fmt.Printf("length: %v\n", len(origSource))
 			// 	fmt.Printf("covCountLoc.SrcLoc: %v\n", covCountLoc.SrcLoc)
 			// }
-			markedUpString += html.EscapeString(string(origSource[covCountLoc.SrcLoc.ByteOffset : covCountLoc.SrcLoc.ByteOffset + covCountLoc.SrcLoc.ByteLength]))
+			markedUpString += html.EscapeString(string(origSource[covCountLoc.SrcLoc.ByteOffset : covCountLoc.SrcLoc.ByteOffset+covCountLoc.SrcLoc.ByteLength]))
 			markedUpString += "</span>"
 			markupIndex = covCountLoc.SrcLoc.ByteOffset + covCountLoc.SrcLoc.ByteLength
 		}
@@ -209,7 +205,7 @@ func main() {
 		reportFileName := viper.GetString("coverage_report_dir") + relativeFileName + ".html"
 
 		if _, err := os.Stat(filepath.Dir(reportFileName)); os.IsNotExist(err) {
-		    common.Check(os.MkdirAll(filepath.Dir(reportFileName), 0711))
+			common.Check(os.MkdirAll(filepath.Dir(reportFileName), 0711))
 		} else {
 			common.Check(err)
 		}

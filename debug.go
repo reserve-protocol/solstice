@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/coordination-institute/debugging-tools/common"
+	"github.com/coordination-institute/debugging-tools/evmbytecode"
 	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/srcmap"
-	"github.com/coordination-institute/debugging-tools/evmbytecode"
 )
 
 func main() {

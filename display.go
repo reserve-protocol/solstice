@@ -6,14 +6,14 @@ import (
 	"io/ioutil"
 	"os"
 
-    "github.com/spf13/viper"
+	"github.com/spf13/viper"
 
 	"github.com/coordination-institute/debugging-tools/ast"
 	"github.com/coordination-institute/debugging-tools/common"
+	"github.com/coordination-institute/debugging-tools/evmbytecode"
 	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/srclocation"
 	"github.com/coordination-institute/debugging-tools/srcmap"
-	"github.com/coordination-institute/debugging-tools/evmbytecode"
 )
 
 var dirName string
@@ -37,7 +37,7 @@ func main() {
 	}
 
 	if _, err := os.Stat(dirName); os.IsNotExist(err) {
-	    os.MkdirAll(dirName, 0711)
+		os.MkdirAll(dirName, 0711)
 	} else {
 		common.Check(err)
 	}
@@ -102,7 +102,7 @@ func displayTree(node ast.ASTTree) {
 
 	writeLocFile(markedUpSource, node.Id)
 
-	for _, childNode:= range node.Children {
+	for _, childNode := range node.Children {
 		displayTree(*childNode)
 	}
 
@@ -111,7 +111,7 @@ func displayTree(node ast.ASTTree) {
 
 func writeLocFile(contents []byte, index uint) {
 	common.Check(ioutil.WriteFile(
-		dirName + "/" + fmt.Sprintf("%06d", index) + ".html",
+		dirName+"/"+fmt.Sprintf("%06d", index)+".html",
 		contents,
 		0644,
 	))

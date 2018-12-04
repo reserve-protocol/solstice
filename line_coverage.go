@@ -9,12 +9,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-    "github.com/spf13/viper"
+	"github.com/spf13/viper"
 
 	"github.com/coordination-institute/debugging-tools/common"
+	"github.com/coordination-institute/debugging-tools/evmbytecode"
 	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/srcmap"
-	"github.com/coordination-institute/debugging-tools/evmbytecode"
 )
 
 func main() {
@@ -35,7 +35,7 @@ func main() {
 		args := viper.GetStringSlice("test_command")
 		cmd := exec.Command(
 			args[0],
-			args[1:]...
+			args[1:]...,
 		)
 
 		if output, err := cmd.CombinedOutput(); err != nil {

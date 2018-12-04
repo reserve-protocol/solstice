@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-    "github.com/spf13/viper"
+	"github.com/spf13/viper"
 )
 
 type jsonrpcResponse struct {
