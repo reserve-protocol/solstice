@@ -17,6 +17,7 @@ import (
     "github.com/spf13/viper"
 
 	"github.com/coordination-institute/debugging-tools/common"
+	"github.com/coordination-institute/debugging-tools/covloc"
 	"github.com/coordination-institute/debugging-tools/parity"
 	"github.com/coordination-institute/debugging-tools/srclocation"
 	"github.com/coordination-institute/debugging-tools/srcmap"
@@ -98,9 +99,9 @@ func main() {
 
 
 	// Initialize the coverage report
-	coverageMap := make(map[string][]srcmap.CoverageLoc)
+	coverageMap := make(map[string][]covloc.CoverageLoc)
 	for _, sourceFileName := range sourceFileName {
-		coverageLocs, err := srcmap.GetCoverageLocs(sourceFileName)
+		coverageLocs, err := covloc.Get(sourceFileName)
 		common.Check(err)
 		coverageMap[sourceFileName] = coverageLocs
 	}
@@ -152,14 +153,14 @@ func main() {
 		origSource, err := ioutil.ReadFile(filename)
 		common.Check(err)
 
-		var flatLocs []coverageCount
+		var flatLocs []covloc.CoverageCount
 		for _, covLoc := range locs {
 			for _, loc := range covLoc.SrcLocs {
 				if loc.ByteLength == 0 {
 					continue
 				}
 
-				flatLocs = append(flatLocs, coverageCount{
+				flatLocs = append(flatLocs, covloc.CoverageCount{
 					loc,
 					covLoc.HitCount,
 				})
@@ -185,7 +186,7 @@ func main() {
 			// 	continue
 			// }
 			markedUpString += html.EscapeString(string(origSource[markupIndex : covCountLoc.SrcLoc.ByteOffset]))
-			if covCountLoc.count == 0 {
+			if covCountLoc.Count == 0 {
 				markedUpString += "<span style=\"background-color:" + srclocation.GithubRed + ";\">"
 			} else {
 				markedUpString += "<span style=\"background-color:" + srclocation.GithubGreen + ";\">"
@@ -215,9 +216,4 @@ func main() {
 
 		common.Check(ioutil.WriteFile(reportFileName, markedUpSource, 0644))
 	}
-}
-
-type coverageCount struct {
-	SrcLoc srclocation.SourceLocation
-	count  int
 }
