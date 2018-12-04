@@ -18,6 +18,7 @@ import (
 
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
+	"github.com/coordination-institute/debugging-tools/srclocation"
 	"github.com/coordination-institute/debugging-tools/srcmap"
 	"github.com/coordination-institute/debugging-tools/evmbytecode"
 )
@@ -165,13 +166,17 @@ func main() {
 			}
 		}
 
-		sortedLocs := byByteOffset(flatLocs)
-		sort.Sort(sortedLocs)
+		sort.Slice(flatLocs, func(i, j int) bool {
+			// If they have the same byte offset, my current belief is that that can
+	    	// only happen if one of them is empty. In that case, we're going to throw
+	    	// it away anyway.
+    		return flatLocs[i].SrcLoc.ByteOffset < flatLocs[j].SrcLoc.ByteOffset
+		})
 
 		markedUpString := "<pre>"
 		markupIndex := 0
 
-		for _, covCountLoc := range sortedLocs {
+		for _, covCountLoc := range flatLocs {
 			if covCountLoc.SrcLoc.ByteLength == 0 {
 				continue
 			}
@@ -181,9 +186,9 @@ func main() {
 			// }
 			markedUpString += html.EscapeString(string(origSource[markupIndex : covCountLoc.SrcLoc.ByteOffset]))
 			if covCountLoc.count == 0 {
-				markedUpString += "<span style=\"background-color:" + srcmap.GithubRed + ";\">"
+				markedUpString += "<span style=\"background-color:" + srclocation.GithubRed + ";\">"
 			} else {
-				markedUpString += "<span style=\"background-color:" + srcmap.GithubGreen + ";\">"
+				markedUpString += "<span style=\"background-color:" + srclocation.GithubGreen + ";\">"
 			}
 			// if covCountLoc.SrcLoc.ByteOffset + covCountLoc.SrcLoc.ByteLength > len(origSource) ||
 			//     covCountLoc.SrcLoc.ByteOffset > len(origSource) || 
@@ -213,25 +218,6 @@ func main() {
 }
 
 type coverageCount struct {
-	SrcLoc srcmap.SourceLocation
+	SrcLoc srclocation.SourceLocation
 	count  int
 }
-
-// ~~~~~~~ Sorting SourceLocations ~~~~~~~
-type byByteOffset []coverageCount
-
-func (ls byByteOffset) Len() int {
-    return len(ls)
-}
-
-func (ls byByteOffset) Swap(i, j int) {
-    ls[i], ls[j] = ls[j], ls[i]
-}
-
-func (ls byByteOffset) Less(i, j int) bool {
-	// If they have the same byte offset, my current belief is that that can
-	// only happen if one of them is empty. In that case, we're going to throw
-	// it away anyway.
-    return ls[i].SrcLoc.ByteOffset < ls[j].SrcLoc.ByteOffset
-}
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

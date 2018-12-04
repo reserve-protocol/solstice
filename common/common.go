@@ -3,6 +3,9 @@ package common
 import (
 	"bytes"
 	"io/ioutil"
+    "os"
+    "path/filepath"
+    "strings"
 
     "github.com/spf13/viper"
 )
@@ -25,4 +28,18 @@ func NumberOfLines(filename string) (int, error) {
 		return 0, err
 	}
 	return bytes.Count(b, []byte{'\n'}), nil
+}
+
+func AllContracts() ([]string, error) {
+    var filenames []string
+    err := filepath.Walk(viper.GetString("contracts_dir"), func(path string, info os.FileInfo, err error) error {
+        if err != nil {
+            return err
+        }
+        if !info.IsDir() && strings.HasSuffix(info.Name(), ".sol") {
+            filenames = append(filenames, path)
+        }
+        return nil
+    })
+    return filenames, err
 }

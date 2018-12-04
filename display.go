@@ -8,8 +8,10 @@ import (
 
     "github.com/spf13/viper"
 
+	"github.com/coordination-institute/debugging-tools/ast"
 	"github.com/coordination-institute/debugging-tools/common"
 	"github.com/coordination-institute/debugging-tools/parity"
+	"github.com/coordination-institute/debugging-tools/srclocation"
 	"github.com/coordination-institute/debugging-tools/srcmap"
 	"github.com/coordination-institute/debugging-tools/evmbytecode"
 )
@@ -56,7 +58,7 @@ func main() {
 
 		pcToOpIndex := evmbytecode.GetPcToOpIndex(execTrace.Code)
 
-		var prevLoc srcmap.SourceLocation
+		var prevLoc srclocation.SourceLocation
 		for i, _ := range execTrace.Ops {
 			pc := execTrace.Ops[i].Pc
 
@@ -88,13 +90,13 @@ func main() {
 			writeLocFile(markedUpSource, uint(i))
 		}
 	} else {
-		ast, err := srcmap.GetAST(viper.GetString("contracts_dir") + "/" + contractName)
+		ast, err := ast.Get(viper.GetString("contracts_dir") + "/" + contractName)
 		common.Check(err)
 		displayTree(ast)
 	}
 }
 
-func displayTree(node srcmap.ASTTree) {
+func displayTree(node ast.ASTTree) {
 	markedUpSource, err := node.SrcLoc.LocationMarkup()
 	common.Check(err)
 
