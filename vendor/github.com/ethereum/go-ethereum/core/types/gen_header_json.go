@@ -127,16 +127,12 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 	}
 	h.Extra = *dec.Extra
 	if dec.MixDigest == nil {
-		// return errors.New("missing required field 'mixHash' for Header")
-		h.MixDigest = common.HexToHash("0x0")
-	} else {
-		h.MixDigest = *dec.MixDigest
+		return errors.New("missing required field 'mixHash' for Header")
 	}
+	h.MixDigest = *dec.MixDigest
 	if dec.Nonce == nil {
-		// return errors.New("missing required field 'nonce' for Header")
-		h.Nonce = EncodeNonce(0)
-	} else {
-		h.Nonce = *dec.Nonce
+		return errors.New("missing required field 'nonce' for Header")
 	}
+	h.Nonce = *dec.Nonce
 	return nil
 }
