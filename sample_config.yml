@@ -1,0 +1,12 @@
+contracts_dir: /home/altair/go/src/github.com/coordination-institute/minimum/contracts
+coverage_report_dir: /home/altair/go/src/github.com/coordination-institute/debugging-tools/coverage_reports/minimum
+blockchain_client: http://127.0.0.1:8545
+test_command:
+  - go
+  - test
+  - github.com/coordination-institute/minimum/system_tests/
+  - --count
+  - 1
+solc_args:
+  - openzeppelin-solidity=./vendor/openzeppelin-solidity
+  - --optimize
