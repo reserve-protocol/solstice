@@ -1,4 +1,4 @@
-# 🌞 Solstice 🌞
+![Solstice](https://raw.githubusercontent.com/reserve-protocol/solstice/master/assets/solstice-full-logo.png)
 
 Solstice is a code coverage tool for the solidity language. The current dependencies are;
 * A running [parity client](https://www.parity.io/ethereum/)
