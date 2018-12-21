@@ -1,0 +1,10 @@
+contracts_dir: /path/to/your/contracts
+coverage_report_dir: /desired/path/to/coverage_reports/
+blockchain_client: http://127.0.0.1:XXXX
+test_command:
+  - my
+  - test
+  - command
+solc_args:
+  - dir-in-contracts=./vendor/dir-in-contracts
+  - --optimize

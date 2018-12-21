@@ -1,0 +1,33 @@
+version: 2
+jobs:
+  run_unit_tests:
+    docker:
+      - image: circleci/golang:1.11
+    working_directory: /go/src/github.com/reserve-protocol/solstice
+    steps:
+      - checkout
+      - run: ls
+      - run: dep ensure
+      - run: go test ./tests
+  build_command:
+    docker:
+      - image: circleci/golang:1.11
+    working_directory: /go/src/github.com/reserve-protocol/solstice
+    steps:
+      - checkout
+      - run: dep ensure
+      # Ideally we want to test each command, but it will take a lot more work
+      # to pull a repo with solidity contracts and tests, and boot up a
+      # blockchain here. This at least makes sure it builds.
+      - run: go build -o solstice
+      - run: ./solstice
+      - run: ./solstice help
+      - run: ./solstice --help
+      - run: ./solstice -h
+
+workflows:
+  version: 2
+  test_all:
+    jobs:
+      - run_unit_tests
+      - build_command
