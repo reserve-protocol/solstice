@@ -16,7 +16,9 @@ It produces html files of the marked-up source code, where covered regions are m
 * Run `go build -o solstice`
 * Run `./solstice cover`
 
-If all works as intended, your test command will run, you will see transactions happening on the parity client, and html files will be produced inside the `coverage_report_dir` you specified in the config file. If you open those html files in a browser, they should looks like your source code files, marked red or green in a reasonable pattern reflecting your test coverage.
+If all works as intended, your test command will run, you will see transactions happening on the parity client, and html files will be produced inside the `coverage_report_dir` you specified in the config file. If you open those html files in a browser, they should look like your source code files, marked red or green in a reasonable pattern reflecting your test coverage.
+
+![A coverage report](https://raw.githubusercontent.com/reserve-protocol/solstice/master/assets/coverage-report-screenshot.png)
 
 ## The config file
 Solstice supports the following configuration options in a YAML file. For an example, see `config.yml`.
