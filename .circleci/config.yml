@@ -1,5 +1,16 @@
 version: 2
 jobs:
+  cross_compile:
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - setup_remote_docker
+      - run: docker pull karalabe/xgo-latest
+      - run: mkdir /tmp/solstice
+      - run: docker run --name xgo karalabe/xgo-latest github.com/reserve-protocol/solstice
+      - run: docker cp xgo:/build /tmp/solstice
+      - store_artifacts:
+          path: /tmp/solstice
   run_unit_tests:
     docker:
       - image: circleci/golang:1.11
@@ -29,5 +40,6 @@ workflows:
   version: 2
   test_all:
     jobs:
+      - cross_compile
       - run_unit_tests
       - build_command
