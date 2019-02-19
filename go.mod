@@ -1,0 +1,31 @@
+module github.com/reserve-protocol/solstice
+
+require (
+	github.com/allegro/bigcache v1.1.0
+	github.com/aristanetworks/goarista v0.0.0-20181210134948-aa2a42e13be6
+	github.com/btcsuite/btcd v0.0.0-20180924021209-2a560b2036be
+	github.com/deckarep/golang-set v1.7.1
+	github.com/ethereum/go-ethereum v1.8.19
+	github.com/fsnotify/fsnotify v1.4.7
+	github.com/go-stack/stack v1.8.0
+	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
+	github.com/google/go-cmp v0.2.0
+	github.com/hashicorp/hcl v1.0.0
+	github.com/inconshreveable/mousetrap v1.0.0
+	github.com/magiconair/properties v1.8.0
+	github.com/mitchellh/mapstructure v1.1.2
+	github.com/pelletier/go-toml v1.2.0
+	github.com/rs/cors v1.5.0
+	github.com/spf13/afero v1.1.2
+	github.com/spf13/cast v1.3.0
+	github.com/spf13/cobra v0.0.3
+	github.com/spf13/jwalterweatherman v1.0.0
+	github.com/spf13/pflag v1.0.3
+	github.com/spf13/viper v1.3.1
+	github.com/syndtr/goleveldb v0.0.0-20180815032940-ae2bd5eed72d
+	golang.org/x/net v0.0.0-20181005035420-146acd28ed58
+	golang.org/x/sys v0.0.0-20181206074257-70b957f3b65e
+	golang.org/x/text v0.3.0
+	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
+	gopkg.in/yaml.v2 v2.2.2
+)
